@@ -26,16 +26,20 @@ One `SKILL.md` per skill, no supporting files.
 
 ```mermaid
 flowchart LR
-    req((request)) --> gate{"ambiguous, &gt;3 tasks,<br/>or a new interface?"}
+    req((request)) --> gate{"ambiguous, &gt;3 tasks,<br/>&gt;2 files, or a new interface?"}
 
-    gate -->|no| testing[dev-testing]
-    gate -->|yes| explore[dev-explore] --> plan[dev-plan] --> implement[dev-implement]
+    subgraph anyphase[any phase]
+        gate -->|no| testing[dev-testing]
+        gate -->|yes| explore[dev-explore] --> plan[dev-plan] --> implement[dev-implement]
 
-    implement -.->|also uses| testing
-    implement -.->|on any bug| debug[dev-debug]
+        implement -.->|also uses| testing
 
-    testing --> verify[dev-verify] --> ship[dev-ship]
-    implement --> verify
+        testing --> verify[dev-verify] --> ship[dev-ship]
+        implement --> verify
+    end
+
+    anyphase -.->|on any bug| debug[dev-debug]
+    ship -.->|work wrapping up| agentsmd[dev-agents-md]
 ```
 
 Each phase states in its own frontmatter when to skip it. The criteria are countable — files touched, number of tasks, whether a new interface appears.
