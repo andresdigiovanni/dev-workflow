@@ -25,30 +25,13 @@ One `SKILL.md` per skill, with two reference files read only when needed: `dev-i
 
 ## How it routes
 
-```mermaid
-flowchart LR
-    req((request)) --> trivial{"no logic change,<br/>nothing to decide?"}
-    trivial -->|yes| tlane["trivial lane<br/>router only"]
-    trivial -->|no| bug{"bug report?"}
-    bug -->|yes| debug[dev-debug]
-    bug -->|no| big{"&gt;3 commits?"}
-    debug -->|"fix found:<br/>size it"| big
+![How it routes](assets/images/how-it-routes.png)
 
-    subgraph anyphase[any phase]
-        big -->|yes| explore_p[dev-explore] --> plan[dev-plan] --> implement[dev-implement]
-        big -->|no| unclear{"ambiguous, a design choice,<br/>code a search doesn't find,<br/>or decisions that need<br/>more than one round?"}
-        unclear -->|yes| explore[dev-explore] --> implement
-        unclear -->|no| implement
+Around that path:
 
-        implement -.->|test first| testing[dev-testing]
-
-        implement --> verify[dev-verify] --> ship[dev-ship]
-    end
-
-    verify -.->|triage hits the<br/>instruction file| agentsmd[dev-agents-md]
-    tlane -.->|diff touches a name the<br/>instruction file uses| agentsmd
-    anyphase -.->|unexpected behavior| debug
-```
+- `dev-testing` is loaded before any test or code is written, in every lane that writes code.
+- Unexpected behavior in any phase goes to `dev-debug`; a phase that shows the lane no longer fits switches lanes from where it is.
+- `dev-agents-md` runs when a change touches something the repo's agent instruction file documents; `dev-skills` when editing this skill set.
 
 The router names five lanes; the first that fits wins. `router.md` is the authority — this table is a summary:
 
