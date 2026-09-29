@@ -1,6 +1,6 @@
 ---
 name: dev-agents-md
-description: Use when repository files changed during the session and a finish line is near — before reporting a task, branch or session complete, before merging or opening a PR, at session end — even if you believe no instruction file exists, nothing needs updating, or the change is too small. The skill decides whether anything belongs there; pre-deciding its outcome is skipping it. Also use when auditing the instruction file for drift.
+description: Keeps the repository's agent instruction file (AGENTS.md, CLAUDE.md) accurate and minimal. Use when a diff renames, removes or changes a path, command, dependency, config key, environment variable or integration API that an instruction file names or should name, when auditing that file for drift, or when asked to update it.
 ---
 
 # Keep the agent instruction file accurate
@@ -9,22 +9,18 @@ Maintain the repository's agent instruction file as a minimal, accurate executio
 
 ## When to run
 
-Whenever repository files changed and the work is wrapping up. The trigger is the observable fact "files changed and we're finishing", **not** your judgment about whether the change mattered. Deciding significance is step 3's job, after inspection. Ending in "no update" is the expected common case, not wasted work.
-
-Skip only when the session changed no repository files.
-
-| Excuse | Reality |
-|---|---|
-| "There's no instruction file, so nothing to update" | Pre-deciding the outcome without inspecting is skipping the skill. |
-| "The change is too small to matter" | "Meaningful" is decided in step 3, never at the trigger. |
-| "The docs were already updated" | Instruction-file drift is a separate thing from README accuracy. |
-| "Optionally I could audit…" | On a repo-changing session the audit is not optional. |
+- **From `dev-verify`:** it runs a triage on every change (*First — the instruction-file triage*) and loads this skill only when the triage hits. Run the full flow below.
+- **Asked for an audit, or to update the file:** skip the triage and run the full flow.
 
 ## 1. Find the right file
 
 Different agents read different filenames — `AGENTS.md`, `CLAUDE.md`, and others. Find which ones this repo actually has, at the root and nested.
 
-**Maintain one canonical file.** If the repo has several, keep the content in the canonical one and make the others point at it. Never maintain the same rules in two places; they will drift and a future agent will read the stale one.
+**Maintain one canonical file.** If the repo has several, keep the content in the canonical one and make the others point at it. Never maintain the same rules in two places; they will drift and a future agent will read the stale one. Merging existing files into one is an audit's job: reached from `dev-verify`'s triage, propose it instead (step 5).
+
+**Only the repository's own files.** Never edit an instruction file outside the repository, such as one in the home directory.
+
+**Never touch the router block.** The block between `<!-- dev-workflow:start -->` and `<!-- dev-workflow:end -->` is this workflow's router, and its installer overwrites it on every run. Don't edit it, don't copy its rules out of it, and don't count them as the repo's own when checking for duplication.
 
 ## 2. Inspect
 
@@ -39,6 +35,8 @@ Evidence order — earlier beats later when they disagree:
 5. The existing instruction files
 6. Repository documentation
 7. Decisions and corrections from this session
+
+The order ranks sources of *fact*. An explicit user decision or correction about a convention doesn't compete with the docs — it is the signal that the file may need to change. Whether it generalizes is still a judgment: propose it, per step 5.
 
 Never invent a command, a path, a convention or a constraint.
 
@@ -58,9 +56,9 @@ Root file for repo-wide rules, nested file for a subsystem. Before adding: check
 
 ## 5. Update what's unambiguous, propose what isn't
 
-**Update directly** when repository evidence makes it clear: a documented command no longer matches the config, a documented path is gone, a technology was replaced, the package manager changed, a required validation command changed. Make the smallest accurate change.
+**Update directly** when the change being made caused the drift and repository evidence makes it clear: a documented command no longer matches the config, a documented path is gone, a technology was replaced, the package manager changed, a required validation command changed. Make the smallest accurate change.
 
-**Propose instead of writing** when it takes judgment — whether a new implementation is a permanent pattern, whether a session decision generalizes, whether an emerging habit should become a rule. A proposal states the instruction, the evidence, the intended scope, and what a future agent gains. When the evidence is weak, change nothing.
+**Propose instead of writing** when it takes judgment — whether a new implementation is a permanent pattern, whether a session decision generalizes, whether an emerging habit should become a rule. Drift that predates the change is a proposal too, however clear, unless the user asked for an audit: fixing it is work the request didn't ask for. A proposal states the instruction, the evidence, the intended scope, and what a future agent gains. When the evidence is weak, change nothing.
 
 **Corrections:** document a correction only when it is likely to recur, specific to this repo, broadly applicable, and preventable by instruction. Write the resulting rule, never the incident.
 

@@ -7,7 +7,7 @@
 #
 # Downloads a tarball of this repository into a temp directory, copies the
 # skills/ folders into the directories your agent reads skills from, and
-# inserts the content of AGENTS.md between a pair of markers in that
+# inserts the content of router.md between a pair of markers in that
 # agent's own instruction file. Nothing here is ever symlinked — every
 # install is a plain copy, independent of this script afterward.
 #
@@ -123,7 +123,7 @@ esac
 # ---------------------------------------------------------------------------
 
 TMP_PATHS=()
-cleanup() { rm -rf "${TMP_PATHS[@]}" 2>/dev/null || true; }
+cleanup() { rm -rf ${TMP_PATHS[@]+"${TMP_PATHS[@]}"} 2>/dev/null || true; }
 trap cleanup EXIT
 
 resolve_source() {
@@ -131,9 +131,9 @@ resolve_source() {
   if [ -n "$script_source" ] && [ -f "$script_source" ]; then
     local dir
     dir="$(cd "$(dirname "$script_source")" && pwd)"
-    if [ -d "$dir/skills" ] && [ -f "$dir/AGENTS.md" ]; then
+    if [ -d "$dir/skills" ] && [ -f "$dir/router.md" ]; then
       SKILLS_SRC="$dir/skills"
-      ROUTER_SRC="$dir/AGENTS.md"
+      ROUTER_SRC="$dir/router.md"
       return
     fi
   fi
@@ -149,7 +149,7 @@ fetch_release() {
   local tmp url extracted
   tmp="$(mktemp -d)"
   TMP_PATHS+=("$tmp")
-  url="https://codeload.github.com/${REPO}/tar.gz/refs/heads/${REF}"
+  url="https://codeload.github.com/${REPO}/tar.gz/${REF}"
 
   step "Fetching dev-workflow (${REPO}@${REF})"
   curl -fsSL "$url" -o "$tmp/src.tar.gz" \
@@ -160,9 +160,9 @@ fetch_release() {
   [ -n "$extracted" ] || die "unexpected archive layout from ${REPO}"
 
   SKILLS_SRC="$extracted/skills"
-  ROUTER_SRC="$extracted/AGENTS.md"
+  ROUTER_SRC="$extracted/router.md"
   [ -d "$SKILLS_SRC" ] && [ -f "$ROUTER_SRC" ] \
-    || die "fetched ${REPO}@${REF} but it doesn't look like dev-workflow (missing skills/ or AGENTS.md)"
+    || die "fetched ${REPO}@${REF} but it doesn't look like dev-workflow (missing skills/ or router.md)"
 }
 
 resolve_source
@@ -284,7 +284,7 @@ PROJECT_DIR="$(cd "$PROJECT_DIR" 2>/dev/null && pwd)" || die "--dir does not exi
 skills_dir_for() {
   case "$1" in
     claude)   [ "$SCOPE" = global ] && echo "$HOME/.claude/skills"             || echo "$PROJECT_DIR/.claude/skills" ;;
-    codex)    [ "$SCOPE" = global ] && echo "$HOME/.codex/skills"              || echo "$PROJECT_DIR/.codex/skills" ;;
+    codex)    [ "$SCOPE" = global ] && echo "$HOME/.agents/skills"             || echo "$PROJECT_DIR/.agents/skills" ;;
     opencode) [ "$SCOPE" = global ] && echo "$HOME/.config/opencode/skills"    || echo "$PROJECT_DIR/.opencode/skills" ;;
   esac
 }
@@ -355,7 +355,9 @@ remove_skill() {
 #
 # Spliced with grep -n (for line numbers) and sed (for ranges) rather than
 # awk -v: some system awk builds (notably macOS's) reject a multi-line
-# string passed through -v, which this block always is.
+# string passed through -v, which this block always is. Markers only count
+# as whole lines, and files are rewritten in place (never moved over), so a
+# symlinked instruction file stays a symlink.
 # ---------------------------------------------------------------------------
 
 BLOCK_FILE="$(mktemp)"
@@ -365,46 +367,55 @@ build_block() {
   { printf '%s\n' "$MARKER_START"; cat "$ROUTER_SRC"; printf '%s\n' "$MARKER_END"; } > "$BLOCK_FILE"
 }
 
+# Sets START_LINE and END_LINE for the first marker pair in $1. A start
+# marker with no end after it used to abort silently (grep's no-match under
+# pipefail); now it stops with a message instead of guessing where to cut.
+block_bounds() {
+  START_LINE="$(grep -nxF "$MARKER_START" "$1" | head -1 | cut -d: -f1)"
+  END_LINE="$(grep -nxF "$MARKER_END" "$1" | head -1 | cut -d: -f1 || true)"
+  if [ -z "$END_LINE" ] || [ "$END_LINE" -lt "$START_LINE" ]; then
+    die "$1 has '$MARKER_START' without a matching '$MARKER_END' after it — fix the markers by hand, then re-run"
+  fi
+}
+
 upsert_block() {
-  local file="$1" spliced start_line end_line
+  local file="$1" spliced
   mkdir -p "$(dirname "$file")"
 
   if [ ! -f "$file" ]; then
-    cp "$BLOCK_FILE" "$file"
+    cat "$BLOCK_FILE" > "$file"
     return
   fi
 
-  if grep -qF "$MARKER_START" "$file"; then
-    start_line="$(grep -nF "$MARKER_START" "$file" | head -1 | cut -d: -f1)"
-    end_line="$(grep -nF "$MARKER_END" "$file" | head -1 | cut -d: -f1)"
+  if grep -qxF "$MARKER_START" "$file"; then
+    block_bounds "$file"
     spliced="$(mktemp)"
     TMP_PATHS+=("$spliced")
     {
-      [ "$start_line" -gt 1 ] && sed -n "1,$((start_line - 1))p" "$file"
+      [ "$START_LINE" -gt 1 ] && sed -n "1,$((START_LINE - 1))p" "$file"
       cat "$BLOCK_FILE"
-      sed -n "$((end_line + 1)),\$p" "$file"
+      sed -n "$((END_LINE + 1)),\$p" "$file"
     } > "$spliced"
-    mv "$spliced" "$file"
+    cat "$spliced" > "$file"
   else
-    printf '\n' >> "$file"
+    [ -s "$file" ] && [ -n "$(tail -c 1 "$file")" ] && printf '\n' >> "$file"
     cat "$BLOCK_FILE" >> "$file"
   fi
 }
 
 remove_block() {
-  local file="$1" spliced start_line end_line
+  local file="$1" spliced
   [ -f "$file" ] || return 0
-  grep -qF "$MARKER_START" "$file" || return 0
+  grep -qxF "$MARKER_START" "$file" || return 0
 
-  start_line="$(grep -nF "$MARKER_START" "$file" | head -1 | cut -d: -f1)"
-  end_line="$(grep -nF "$MARKER_END" "$file" | head -1 | cut -d: -f1)"
+  block_bounds "$file"
   spliced="$(mktemp)"
   TMP_PATHS+=("$spliced")
   {
-    [ "$start_line" -gt 1 ] && sed -n "1,$((start_line - 1))p" "$file"
-    sed -n "$((end_line + 1)),\$p" "$file"
+    [ "$START_LINE" -gt 1 ] && sed -n "1,$((START_LINE - 1))p" "$file"
+    sed -n "$((END_LINE + 1)),\$p" "$file"
   } > "$spliced"
-  mv "$spliced" "$file"
+  cat "$spliced" > "$file"
 
   if ! grep -q '[^[:space:]]' "$file" 2>/dev/null; then
     rm -f "$file"
@@ -417,7 +428,7 @@ remove_block() {
 
 confirm() {
   [ "$ASSUME_YES" = "1" ] && return 0
-  can_prompt || return 0
+  can_prompt || die "no terminal to confirm on — pass --yes"
   local reply
   printf '%s [y/N] ' "$1"
   prompt_read reply || true
@@ -484,6 +495,7 @@ else
       remove_skill "$name" "$target_skills_dir"
     done
     rmdir "$target_skills_dir" 2>/dev/null || true
+    [ "$SCOPE" = project ] && { rmdir "$(dirname "$target_skills_dir")" 2>/dev/null || true; }
     ok "skills removed from $target_skills_dir"
 
     instr_file="$(instruction_file_for "$agent")"
