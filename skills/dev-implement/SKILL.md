@@ -1,6 +1,6 @@
 ---
 name: dev-implement
-description: Writes the code for a change. Use when writing or changing code from a request or a spec, when executing an approved plan task by task, and when resuming a plan after a context compaction. Always paired with dev-testing.
+description: Writes the code for a change. Use before the first edit to any source or test file, however small the change — a new function, a fix, a flag — when executing an approved plan task by task, and when resuming a plan after a context compaction. Always paired with dev-testing. Not for the Trivial lane: typos, docs, comments, copy.
 ---
 
 # Implement
