@@ -14,6 +14,8 @@ You are the **coordinator**: you dispatch, verify, review and commit, and the im
 
 ## Setup
 
+**Ask where the plan runs before creating anything** — a worktree or a branch, per `dev-implement`, *Before either mode*. Create no branch, worktree or ledger until the user answers; the ledger lives in the tree the work runs in.
+
 Tasks run **one at a time**, even in a worktree. The review between tasks is what catches a task that drifted from its `Interfaces` before the next one builds on it; parallel implementers skip that gate, collide on shared files, and need merges to rejoin. Parallelize the read-only work instead: fact-finding in `dev-explore`, and nothing else.
 
 Read the plan once. Read the spec it names — that is the authority, and any conflict inside the plan resolves against it. Note the global constraints; they bind every task. Decisions settled in `dev-explore` already live in the spec — don't copy them; the ledger records the ones taken from here on.

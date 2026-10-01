@@ -50,11 +50,12 @@ A request **pins down** a surface when it gives its exact shape: the name, the p
    - a caller-observable behavior the request leaves open — two readings count;
    - the go-ahead on spec and plan, or on a restated request when an answer changed the scope;
    - two failed fixes for one bug;
-   - how to integrate.
+   - how to integrate;
+   - where a delegated plan runs — a worktree or a branch (`dev-implement`).
 
    Decide everything else and record `Decision: <what> — <why> — <cost if wrong>`. If the cost is something a caller would see, it was a stop: ask. Never stop between the tasks of an approved plan: a task blocked on a user's decision is asked while the others carry on.
 4. **Build only what was asked.** Every changed line traces to the request or the spec. No drive-by refactors, reformatting, renames, speculative helpers, options "for later", unrelated fixes, error handling for inputs no caller sends, or comments that narrate the change — list them as follow-ups.
 
-**Git.** Branch first, without asking. Never commit to the default branch unless the user says so. Stage by path, never `git add -A`: the tree may hold the user's own work. One commit per task, after its tests and its review, if it has one, pass. Never amend, rebase or force-push.
+**Git.** Branch first, without asking — except where a delegated plan runs, which the user chooses. Name it by the repo's convention, else by the work's slug. Never commit to the default branch unless the user says so. Stage by path, never `git add -A`: the tree may hold the user's own work. One commit per task, after its tests and its review, if it has one, pass. Never amend, rebase or force-push, and never delete a remote branch. Once the work is integrated or discarded, `dev-ship` removes the local branch and worktree.
 
 Specs go in `docs/specs/`, plans in `docs/plans/`, ledgers in `.dev-runs/` (git-ignored). A convention the repo already has wins.

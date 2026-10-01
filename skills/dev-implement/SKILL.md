@@ -15,7 +15,15 @@ Two modes, one discipline. **Load `dev-testing` before writing any test or code,
 Branch first, per the router's *Git*.
 
 - **Direct mode** — a branch in the current working tree; anything more costs more than the change. If the tree holds uncommitted work that isn't part of this change, leave it alone and stage by path.
-- **Delegated mode** — one worktree for the whole plan, on its own branch, when the tree has uncommitted changes other than this plan's spec and plan; a branch otherwise. Sub-agents and the user then never write to the same files.
+- **Delegated mode** — ask the user once, before the first task, where the plan runs, in the *Single round* format of `dev-explore`:
+  - **A worktree for the whole plan, on its own branch** — recommended: sub-agents and the user never write to the same files. It costs a setup and a cleanup.
+  - **A branch in the current tree** — nothing to set up. It costs the tree: the user can't edit files while the plan runs, and uncommitted work of theirs stays in the way.
+
+  A preference the user already declared in an instruction file settles it without the question. Already inside a linked worktree (`git rev-parse --git-dir` differs from `--git-common-dir`, and `git rev-parse --show-superproject-working-tree` prints nothing)? Work there; don't create another.
+
+  Create a worktree with the host's native worktree mechanism when it has one, else `git worktree add .worktrees/<slug> -b <branch>`. Add `.worktrees/` to the file `git rev-parse --git-path info/exclude` names, so it never lands in a commit.
+
+The branch is named by the repo's convention when it has one — the existing branch names, the contributing guide — else by the work's slug. `dev-ship`, *Cleanup*, removes both once the work is integrated or discarded.
 
 ## Direct mode — no plan
 

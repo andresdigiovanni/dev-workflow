@@ -53,7 +53,7 @@ Three things hold across the lanes:
 - **Only what was asked.** A new surface — an endpoint, a CLI command or flag, an exported function or type, a config key — must justify itself against a requirement — in `dev-explore`, or in `dev-implement`'s single round of questions on the fast and bug lanes — unless the request already names it with its exact shape. `dev-verify` then traces every hunk and every surface back to the spec or the request, and reverts what traces to nothing.
 - **Tests aren't bent to pass.** `dev-verify` traces every edit to an existing test — a changed expectation, a loosened assertion, a skip, a deletion — to a requirement that changed that behavior, and reverts the rest.
 
-One task, one commit: a task is committed once its tests pass and its review is through, so history is never rewritten. Commit messages stay short; the request, decisions and progress live in a git-ignored ledger and in the PR body. A plan runs in one worktree when the main tree is busy, with its tasks executed one at a time — parallel sub-agents are reserved for read-only fact-finding.
+One task, one commit: a task is committed once its tests pass and its review is through, so history is never rewritten. Commit messages stay short; the request, decisions and progress live in a git-ignored ledger and in the PR body. The user chooses whether a plan runs in its own worktree or on a branch, its tasks execute one at a time, and once the work is integrated or discarded the local branch and worktree are removed, never a remote branch — parallel sub-agents are reserved for read-only fact-finding.
 
 ## Install
 

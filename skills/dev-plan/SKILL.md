@@ -128,4 +128,4 @@ Fix inline and move on. No second pass.
 
 A change they ask for in the spec reaches the plan too: update both, re-run the self-review, and hand them back.
 
-**Once approved**, spec and plan go in together as the first commit on the work branch — `docs: spec and plan for <slug>`, in the repo's commit convention — so every task commit after it argues from a committed authority. Create the branch, or the worktree `dev-implement` calls for, first. Move the two files there if they were written elsewhere, and stage them by path.
+**Once approved**, spec and plan go in together as the first commit on the work branch — `docs: spec and plan for <slug>`, in the repo's commit convention — so every task commit after it argues from a committed authority. Settle where the plan runs per `dev-implement`, *Before either mode*, and create that branch or worktree first. Move the two files there if they were written elsewhere, and stage them by path.

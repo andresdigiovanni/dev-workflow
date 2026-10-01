@@ -37,4 +37,21 @@ Never merge to `main` or `master` without the user's explicit say-so. When the w
 
 The PR body says what changed and why, the decisions taken and their trade-offs, what a reviewer should look at first, and how it was verified — the actual commands and their results, not "tests pass".
 
-A plan that ran in a worktree: once its branch is merged or discarded, remove the worktree (`git worktree remove <path>`), and its ledger with it.
+## Cleanup
+
+Once the work is merged or discarded, remove what the workflow created: the work branch, its worktree and its ledger. Run it from the default branch or the main tree, never from inside the worktree being removed. Remove the worktree first: git won't delete a branch a worktree still has checked out.
+
+| Outcome | Branch | Worktree and ledger |
+|---|---|---|
+| Merged directly | `git branch -d` — it refuses an unmerged branch, which is the check | remove |
+| PR open | keep | keep — review feedback is fixed there |
+| PR merged — the user says so, or the forge reports it | `git branch -d`; if it refuses, stop and ask (below) | remove |
+| Discarded | `git branch -D`, only after the user confirms the discard | remove |
+
+- **Run `git branch -d` first, always. `-D` needs the user's answer to a question you asked** — "finish up" or "it's merged" is not that answer. After a squash or rebase merge git sees the branch's commits as unmerged, so `-d` refuses although the work landed. Then stop: name the merged PR, say git sees unmerged commits, and ask whether to force-delete. A refusal you override is the only way this cleanup destroys work.
+- **A sliced plan** deletes its branches only once every slice is integrated.
+- **Never touch a remote branch** — no `git push --delete`, whatever the outcome.
+- **Remove a worktree with `git worktree remove <path>`, never `--force`.** If git refuses, the worktree holds files that exist nowhere else: show `git status --short` there and ask.
+- **Only what the workflow created:** the default branch, branches it didn't create and worktrees outside `.worktrees/` are not yours.
+
+A PR open at the end of a session leaves nobody to clean up. When the user later says it merged, run this.
