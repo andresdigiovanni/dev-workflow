@@ -9,6 +9,7 @@ dev-workflow/
 ├── router.md          # the router: lanes, four global rules, git
 ├── install.sh         # installs the skills and the router block
 ├── README.md
+├── evals/             scenarios that check the skills — not installed
 └── skills/
     ├── dev-explore/       analysis — facts in parallel, decisions in rounds
     ├── dev-plan/          spec → tasks with interface contracts
