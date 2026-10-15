@@ -26,6 +26,8 @@ Before dispatching Task 1, run the project's full test command once on the work 
 
 **Why the ledger exists:** conversation memory does not survive compaction. The single most expensive failure in this workflow is a coordinator that lost its place and re-ran tasks that were already done. After a compaction, the ledger and `git log` outrank your recollection.
 
+**The cheapest moments to compact** are right after the plan's go-ahead and right after a `complete` line: everything the next step needs is on disk. Never mid-task — the implementer's report and the review findings are not in the ledger yet.
+
 One line per event, appended as it happens, never edited:
 
 ```
