@@ -34,7 +34,7 @@ Around that path:
 - Unexpected behavior in any phase goes to `dev-debug`; a phase that shows the lane no longer fits switches lanes from where it is.
 - `dev-agents-md` runs when a change touches something the repo's agent instruction file documents; `dev-skills` when editing this skill set.
 
-The router names five lanes; the first that fits wins. `router.md` is the authority — this table is a summary:
+The router names five lanes; the first that fits wins, and the agent states the lane it picked in one line, so a wrong one can be overridden before work starts. `router.md` is the authority — this table is a summary:
 
 | Lane | When | Path |
 |---|---|---|
@@ -44,7 +44,7 @@ The router names five lanes; the first that fits wins. `router.md` is the author
 | Explored | 3 commits or fewer, with ambiguity, a design choice with more than one defensible answer, open surfaces that need more than one round, or code a search doesn't find | `dev-explore` → fast lane |
 | Planned | more than 3 commits | `dev-explore` (spec, approaches with their trade-offs) → `dev-plan` → delegated `dev-implement` → `dev-verify` → `dev-ship` |
 
-`dev-verify` scales its gates to the diff: at 50 changed lines or fewer, tests excluded, with no new surface and no plan, its review is a self-run pass instead of a sub-agent. A request that changes no file, such as a question, doesn't enter the workflow.
+`dev-verify` scales its gates to the diff: at 50 changed lines or fewer, tests excluded, with no new surface and no plan, its review is a self-run pass instead of a sub-agent — unless its security triage hits: a diff that changes authentication, authorization, secrets, cryptography, permissions, or how outside input reaches a query, shell, path, template or deserializer always gets a fresh reviewer. Reviewers report only findings they can trigger, ranked critical, important or minor, and a finding the author disputes goes to a fresh verifier rather than being ruled on by the author. A request that changes no file, such as a question, doesn't enter the workflow.
 
 The work stops for the user only on the decisions listed in the router's rule 3: an open surface, a new dependency the request doesn't name, a fact only the user holds, a behavior the request left with two readings, a go-ahead on spec and plan (or on a restated request when an answer changed the scope), two failed fixes, and how to integrate. Everything else is decided and recorded.
 
@@ -52,7 +52,7 @@ Three things hold across the lanes:
 
 - **Tests first, proven.** Every test is watched fail before the code that turns it green; a regression test is proven red by reverting its fix; a mutation pass shows the new tests assert something. On every lane that loads `dev-implement`, the suite runs once before the first edit, so a pre-existing red is told apart from one the change caused.
 - **Only what was asked.** A new surface — an endpoint, a CLI command or flag, an exported function or type, a config key — must justify itself against a requirement — in `dev-explore`, or in `dev-implement`'s single round of questions on the fast and bug lanes — unless the request already names it with its exact shape. `dev-verify` then traces every hunk and every surface back to the spec or the request, and reverts what traces to nothing.
-- **Tests aren't bent to pass.** `dev-verify` traces every edit to an existing test — a changed expectation, a loosened assertion, a skip, a deletion — to a requirement that changed that behavior, and reverts the rest.
+- **Tests and checks aren't bent to pass.** `dev-verify` traces every edit to an existing test — a changed expectation, a loosened assertion, a skip, a deletion — and every change to the linter, formatter, type checker or CI configuration to a requirement that changed that behavior, and reverts the rest.
 
 One task, one commit: a task is committed once its tests pass and its review is through, so history is never rewritten. Commit messages stay short; the request, decisions and progress live in a git-ignored ledger and in the PR body. The user chooses whether a plan runs in its own worktree or on a branch, its tasks execute one at a time, and once the work is integrated or discarded the local branch and worktree are removed, never a remote branch — parallel sub-agents are reserved for read-only fact-finding.
 
@@ -101,6 +101,6 @@ Uninstalling through `curl` needs an internet connection, the same as installing
 |---|---|---|
 | Spec | `docs/specs/YYYY-MM-DD-<slug>.md` | committed, only when a plan follows |
 | Plan | `docs/plans/YYYY-MM-DD-<slug>.md` | committed — argues from the spec |
-| Ledger | `.dev-runs/<slug>.md` | git-ignored — the request and decisions of a change that asked or decided anything, and a plan's progress task by task |
+| Ledger | `.dev-runs/<slug>.md` | git-ignored — the request and decisions of a change that asked or decided anything, the fixes that were tried and failed, and a plan's progress task by task |
 
 Whichever skill writes the ledger first — `dev-explore` or `dev-implement` — makes sure `.dev-runs/` is git-ignored before writing it. A convention the target repository already has wins over these defaults.
