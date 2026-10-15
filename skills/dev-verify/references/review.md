@@ -1,6 +1,6 @@
 # Gate 3 — the fresh review
 
-Read from `dev-verify`, *Gate 3 — Fresh review*, before dispatching the reviewer, and again before ruling on what it returns.
+Read from `dev-verify`, *Gate 3 — Fresh review*, before dispatching the reviewer or running the review yourself, and again before ruling on what it returns. A plan's per-task reviewers get the same brief (`dev-implement`'s `references/delegated.md`, *Per task*).
 
 ## Contents
 - The brief
@@ -67,4 +67,4 @@ Dispatch a fresh verifier with the finding, the code it names and the spec — n
 
 ## Without sub-agents
 
-Write the findings yourself in a separate pass, reading the diff as a stranger would, before deciding anything about them, under the same rules and shape. For a finding you dispute, write the trigger out and try it — a test or a run, not an argument. Not disproven: it stands. The report says the review was self-run.
+Also the review of `dev-verify`'s *Small* row. Do it as a separate pass: read the full diff as a stranger would, with the spec beside you, and write the findings down — under the brief's rules and shape — before deciding anything about them. For a finding you dispute, write the trigger out and try it — a test or a run, not an argument. Not disproven: it stands. The report says the review was self-run — weaker evidence, and the user should know.

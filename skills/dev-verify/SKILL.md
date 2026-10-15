@@ -26,7 +26,7 @@ Before the gates, so they check any update too. Two checks against the repo's ag
 
 Does the diff change how any of these behave: authentication or authorization; input from outside the process reaching a query, a shell, a path, a template or a deserializer; secrets or credentials; cryptography; the permissions of a file or resource? A name that merely appears in the diff is not a hit.
 
-**No hit:** `Security: no hit`. **A hit:** gate 3 runs a fresh reviewer whatever the row below says, with the security lens of `references/review.md`.
+**No hit:** `Security: no hit`. **A hit:** gate 3 runs a fresh reviewer whatever the row, with the security lens.
 
 ## Scale to the change
 
@@ -35,7 +35,7 @@ Count the diff, tests excluded, and take the first row that fits. When unsure, t
 | Change | Gate 1 | Gate 2 | Gate 3 | Report |
 |---|---|---|---|---|
 | **Trivial** — the router's *Trivial* lane | Suite and linter, no mutation check. For docs only, none: `Checks: not run — docs only` | The reverse traces only — no behavior to map to tests | None | Compact |
-| **Small** — ≤50 changed lines, no new surface, no plan | In full; the mutation pass covers only the conditions and boundaries the diff touched — none touched, none run | In full | Self-run, per *Without sub-agents* | Compact |
+| **Small** — ≤50 changed lines, no new surface, no plan | In full; the mutation pass covers only the conditions and boundaries the diff touched — none touched, none run | In full | Self-run, per `references/review.md`, *Without sub-agents* | Compact |
 | **Anything else** | In full | In full | Fresh reviewer | Full |
 
 The reverse traces never scale down: an unrequested hunk in a small diff is still unrequested.
@@ -73,7 +73,7 @@ Then run it in reverse, three times.
 
 **1. Every hunk → the requirement it serves.** Read the diff hunk by hunk. A reformatted block, a renamed variable, a refactor, a helper or option no requirement needs, a fix to unrelated code: remove it and list it under `Follow-ups`. An instruction-file update traces to the triage, not to the request. The test for a hunk is not "is it an improvement" but "did the request ask for it".
 
-**2. Every change to an existing test or check → the requirement that changed the behavior it pins.** A check is the configuration of the linter, formatter, type checker or CI: disabling a rule, raising a threshold or excluding a path to get green is loosening an assertion. List each test the diff deletes, skips, marks expected-to-fail or focuses (`only`), or whose expected value or assertion it changes or loosens. One with no requirement that changes that behavior made the suite agree instead of the code: revert it, and report whatever turns red again. A bug report is the requirement for a test that pinned the bug.
+**2. Every change to an existing test or check → the requirement that changed the behavior it pins.** A check — linter, formatter, type checker or CI configuration — bent to get green is a loosened assertion. List each test the diff deletes, skips, marks expected-to-fail or focuses (`only`), or whose expected value or assertion it changes or loosens. One with no requirement that changes that behavior made the suite agree instead of the code: revert it, and report whatever turns red again. A bug report is the requirement for a test that pinned the bug.
 
 **3. Every surface the diff adds → the contract, request line, or user-settled decision that asked for it.** List every new surface the diff introduces (router, *Terms*). One that traces to nothing is a finding:
 
@@ -88,19 +88,15 @@ Unrequested contracts are the scope creep tests never catch, because the tests w
 
 At the scale that calls for it, dispatch **one** reviewer sub-agent over the whole-branch diff, or one slice's diff against the slice before it.
 
-**Read `references/review.md` before dispatching, and again before ruling on what comes back.** It holds the brief — what the reviewer gets, what it looks for, what counts as a finding — the severity scale, the security lens and how a disputed finding is settled. The reviewer gets **none of your session history**: one that inherits your reasoning re-derives your blind spots.
+**Read `references/review.md` before dispatching, and again before ruling on what comes back**: the brief, the severity scale, the security lens, and how a disputed finding is settled. The reviewer gets **none of your session history**.
 
-**Coming back:** fix the critical and important findings before shipping; record the minor ones under `Follow-ups`. A finding you think is wrong is settled per the reference, *A finding you dispute* — never by your own reading of the code you wrote. Accepting a wrong finding breaks correct code; dismissing a right one ships the bug.
+**Coming back:** fix the critical and important findings before shipping; record the minor ones under `Follow-ups`. Dispute one only per the reference, *A finding you dispute* — never by your own reading of the code you wrote.
 
 In delegated mode, fixes from any gate follow `dev-implement`'s `references/delegated.md`, *After the last task*.
 
 **Fixes make gate 1's output stale.** After fixing, run gates 1 and 2 again before reporting. A fix that changed more than its finding named goes back to a fresh reviewer — two review rounds maximum. Findings that survive round two each get a ruling and go under `Open`.
 
 If the runtime has a native code review that runs without your session history, gate 3 can use it instead of a sub-agent.
-
-## Without sub-agents
-
-Do gate 3 as a separate pass: read the full diff as a reviewer, with the spec beside you, and write the findings down before deciding anything about them. The report says the review was self-run — weaker evidence, and the user should know.
 
 ## Report
 
