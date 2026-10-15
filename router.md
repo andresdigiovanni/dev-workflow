@@ -18,6 +18,8 @@ For any request that changes repository files. A question, an explanation or a r
 
 **Wrong lane?** When a phase shows the lane no longer fits — exploration finds more than 3 commits, a trivial edit needs logic — switch lanes from the phase you are in.
 
+**Say the lane** before starting — the *Trivial* lane too — and again on a switch: one line with the fact that picked it — `Lane: Fast — one function, the request names it`. A wrong lane is invisible until a phase trips on it; this line lets the user catch it first. A lane the user names wins.
+
 **Load each skill when its phase starts, and follow it.** A phase run from memory drops its gates. Also load `dev-testing` before any implementation code, `dev-debug` on any unexpected behavior, and `dev-skills` when editing this set.
 
 ### Trivial lane
@@ -41,7 +43,7 @@ A request **pins down** a surface when it gives its exact shape: the name, the p
 
 ## Four rules that apply everywhere
 
-1. **Evidence before claims.** Nothing passes, works or is done until you ran the command in this turn and read its output. A self-report — yours or a sub-agent's — is a claim, not evidence.
+1. **Evidence before claims.** Nothing passes, works or is done until you ran the command in this turn and read its output. A self-report — yours or a sub-agent's — is a claim, not evidence. A sub-agent you dispatched is yours to collect: never end a turn waiting on one.
 2. **Facts are yours to find, decisions are the user's.** Never ask what the repo, the history or the network can answer. Never decide what the user is entitled to decide.
 3. **Stop only for what the user must answer.** Ask each one with options, their costs and your recommendation:
    - an open new surface;
@@ -56,6 +58,6 @@ A request **pins down** a surface when it gives its exact shape: the name, the p
    Decide everything else and record `Decision: <what> — <why> — <cost if wrong>`. If the cost is something a caller would see, it was a stop: ask. Never stop between the tasks of an approved plan: a task blocked on a user's decision is asked while the others carry on.
 4. **Build only what was asked.** Every changed line traces to the request or the spec. No drive-by refactors, reformatting, renames, speculative helpers, options "for later", unrelated fixes, error handling for inputs no caller sends, or comments that narrate the change — list them as follow-ups.
 
-**Git.** Branch first, without asking — except where a delegated plan runs, which the user chooses. Name it by the repo's convention, else by the work's slug. Never commit to the default branch unless the user says so. Stage by path, never `git add -A`: the tree may hold the user's own work. One commit per task, after its tests and its review, if it has one, pass. Never amend, rebase or force-push, and never delete a remote branch. Once the work is integrated or discarded, `dev-ship` removes the local branch and worktree.
+**Git.** Branch first, without asking — except where a delegated plan runs, which the user chooses. Name it by the repo's convention, else by the work's slug. Never commit to the default branch unless the user says so. Stage by path, never `git add -A`: the tree may hold the user's own work. One commit per task, after its tests and its review, if it has one, pass. Never amend, rebase or force-push, and never delete a remote branch. Never skip the repo's commit hooks or checks — no `--no-verify`, no overriding the hooks path. Once the work is integrated or discarded, `dev-ship` removes the local branch and worktree.
 
 Specs go in `docs/specs/`, plans in `docs/plans/`, ledgers in `.dev-runs/` (git-ignored). A convention the repo already has wins.
