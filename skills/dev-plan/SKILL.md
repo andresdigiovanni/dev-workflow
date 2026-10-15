@@ -65,6 +65,10 @@ A task is the smallest unit that carries its own test cycle and is worth a fresh
   tasks rely on — and every public surface from the spec's contracts that
   this task creates, in the contract's exact shape>
 
+**Mirror:** `exact/path/existing.py` — `<function or class>`: the existing
+code this task follows for errors, naming, validation and tests — or
+`none — no precedent`
+
 **Step 1 — write the failing test**
 <the actual test code>
 
@@ -88,6 +92,8 @@ Expected: PASS, suite green
 **A refactor task** has no failing test to write. Step 1 pins the current behavior instead, and Step 2 confirms the test is connected by breaking the code once and watching it fail, per `dev-testing`.
 
 **The `Interfaces` block is the load-bearing part.** An implementer sees only their own task, so this block is the only way they learn the names and types their neighbors use. Tasks sent to sub-agents without it produce code that doesn't connect.
+
+**`Mirror` carries the local pattern.** The implementer doesn't know how this codebase reports errors or names its tests, and code that ignores that ships as a second way of doing the same thing. Name code that exists; when nothing comparable does, say so — never invent a pattern.
 
 **Each step is one action.** A Step 3 too large for a reviewer to read in one pass means the task is two tasks.
 
@@ -116,7 +122,8 @@ Run this yourself once the plan is written, with the spec open — not a sub-age
    - **The codebase has a convention for it** — how it reports a bad argument, what it returns on empty: the expected result is a fact. Add the test to the task that owns the code.
    - **It doesn't:** what should happen is the user's decision, not extra handling to add on your own. Ask it at the handoff, per *Questions first*.
 6. **Surfaces.** Every public surface a task produces appears under the spec's contracts with the same shape, and in that task's `Produces`. The implementer treats anything missing from its `Interfaces` block as not its to add. A task that exports more than the contracts is adding scope: make the extra private or cut it.
-7. **Nothing beyond the spec.** Every task, and every file in its `Files`, serves a requirement you can point at. A task that serves none — a cleanup, a refactor "while we're there", a helper no requirement needs — is scope the user didn't ask for. Cut it, or move it to the spec's out-of-scope list as a follow-up.
+7. **Mirrors.** Every task that adds code names a `Mirror` that exists — open it — or says there is none.
+8. **Nothing beyond the spec.** Every task, and every file in its `Files`, serves a requirement you can point at. A task that serves none — a cleanup, a refactor "while we're there", a helper no requirement needs — is scope the user didn't ask for. Cut it, or move it to the spec's out-of-scope list as a follow-up.
 
 Fix inline and move on. No second pass.
 

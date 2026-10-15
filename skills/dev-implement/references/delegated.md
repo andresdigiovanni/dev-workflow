@@ -64,6 +64,7 @@ It gets exactly this, constructed on purpose:
 - the full text of its task
 - the worktree path it works in
 - its `Interfaces` block
+- its `Mirror` line
 - the global constraints
 - the spec requirements its task serves
 - the baseline's red tests, if any — pre-existing, not its to fix
