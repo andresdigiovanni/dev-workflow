@@ -22,6 +22,12 @@ Before the gates, so they check any update too. Two checks against the repo's ag
 
 **Either hits:** run `dev-agents-md`. An update this change motivated goes in the last task's commit.
 
+## Then — the security triage
+
+Does the diff change how any of these behave: authentication or authorization; input from outside the process reaching a query, a shell, a path, a template or a deserializer; secrets or credentials; cryptography; the permissions of a file or resource? A name that merely appears in the diff is not a hit.
+
+**No hit:** `Security: no hit`. **A hit:** gate 3 runs a fresh reviewer whatever the row below says, with the security lens of `references/review.md`.
+
 ## Scale to the change
 
 Count the diff, tests excluded, and take the first row that fits. When unsure, take the row below.
@@ -67,7 +73,7 @@ Then run it in reverse, three times.
 
 **1. Every hunk → the requirement it serves.** Read the diff hunk by hunk. A reformatted block, a renamed variable, a refactor, a helper or option no requirement needs, a fix to unrelated code: remove it and list it under `Follow-ups`. An instruction-file update traces to the triage, not to the request. The test for a hunk is not "is it an improvement" but "did the request ask for it".
 
-**2. Every change to an existing test → the requirement that changed the behavior it pins.** List each test the diff deletes, skips, marks expected-to-fail or focuses (`only`), or whose expected value or assertion it changes or loosens. One with no requirement that changes that behavior made the suite agree instead of the code: revert it, and report whatever turns red again. A bug report is the requirement for a test that pinned the bug.
+**2. Every change to an existing test or check → the requirement that changed the behavior it pins.** A check is the configuration of the linter, formatter, type checker or CI: disabling a rule, raising a threshold or excluding a path to get green is loosening an assertion. List each test the diff deletes, skips, marks expected-to-fail or focuses (`only`), or whose expected value or assertion it changes or loosens. One with no requirement that changes that behavior made the suite agree instead of the code: revert it, and report whatever turns red again. A bug report is the requirement for a test that pinned the bug.
 
 **3. Every surface the diff adds → the contract, request line, or user-settled decision that asked for it.** List every new surface the diff introduces (router, *Terms*). One that traces to nothing is a finding:
 
@@ -82,20 +88,9 @@ Unrequested contracts are the scope creep tests never catch, because the tests w
 
 At the scale that calls for it, dispatch **one** reviewer sub-agent over the whole-branch diff, or one slice's diff against the slice before it.
 
-**It gets** the spec or requirements, the base commit, the working tree and a short description of what was built — **not your session history**. A reviewer that inherits your reasoning re-derives your blind spots.
+**Read `references/review.md` before dispatching, and again before ruling on what comes back.** It holds the brief — what the reviewer gets, what it looks for, what counts as a finding — the severity scale, the security lens and how a disputed finding is settled. The reviewer gets **none of your session history**: one that inherits your reasoning re-derives your blind spots.
 
-**Ask it for**, ranked most severe first:
-
-- correctness bugs, with the input that triggers them;
-- requirements the diff misses;
-- code the requirements don't need;
-- quality problems worth fixing now, in the lines the diff changed — not around them.
-
-**Coming back:**
-
-- **Fix the critical and important findings** before shipping; **record the minor ones**.
-- **Push back when the reviewer is wrong**, with the test or the code that proves it. Accepting a wrong finding is how correct code gets broken.
-- **A finding you disagree with but cannot disprove is not resolved.** Say so.
+**Coming back:** fix the critical and important findings before shipping; record the minor ones under `Follow-ups`. A finding you think is wrong is settled per the reference, *A finding you dispute* — never by your own reading of the code you wrote. Accepting a wrong finding breaks correct code; dismissing a right one ships the bug.
 
 In delegated mode, fixes from any gate follow `dev-implement`'s `references/delegated.md`, *After the last task*.
 
@@ -115,9 +110,10 @@ Types/lint/build: <command> → <result>
 Entry point: <command → what it showed, or n/a>
 Mutants:    <survivors on the new code, each explained — or none>
 Spec:       <n> requirements, <n> covered, gaps: <list or none>
-Tests changed: <each existing test changed, loosened, skipped, focused or deleted → its requirement — or none>
+Tests changed: <each existing test or check changed, loosened, skipped, focused or deleted → its requirement — or none>
 Surfaces:   <n> added, all traced | untraced: <list>
 Review:     <n> findings — <n> fixed, <n> recorded, <n> disputed
+Security:   <no hit | hit: what the diff touches → <n> findings>
 Agent file: <no update | updated | proposed: the proposal>
 Decisions:  <what — why — cost if wrong, or none; from the spec and the ledger>
 Follow-ups: <what was noticed and deliberately left out of scope — or none>
@@ -130,8 +126,9 @@ Compact, for the trivial and small rows:
 Checks:     <each command gate 1 ran → result, pre-existing reds named; `not run — docs only` for docs>
 Mutants:    <survivors, each explained — or none; small row only>
 Spec:       <each requirement → test; small row only>
-Scope:      every hunk traced, no new surface, existing tests changed: <each → its requirement, or none> | removed: <list>
-Review:     self-run — <findings or none; small row only>
+Scope:      every hunk traced, no new surface, existing tests or checks changed: <each → its requirement, or none> | removed: <list>
+Review:     self-run — <findings or none; small row only> | fresh — <findings>, when the security triage hit
+Security:   <no hit | hit: what the diff touches>
 Agent file: <no update | updated | proposed: the proposal>
 Decisions:  <what — why — cost if wrong, or none>
 Follow-ups: <or none>

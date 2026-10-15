@@ -21,7 +21,7 @@ dev-workflow/
     └── dev-skills/        maintain this set
 ```
 
-One `SKILL.md` per skill, with two reference files read only when needed: `dev-implement/references/delegated.md`, the plan-execution mode, read only when there is a plan, so small changes don't load it; and `dev-testing/references/property-based.md`, read only once a property test is worth writing.
+One `SKILL.md` per skill, with three reference files read only when needed: `dev-implement/references/delegated.md`, the plan-execution mode, read only when there is a plan, so small changes don't load it; `dev-verify/references/review.md`, the fresh reviewer's brief and how its findings are ruled on, read only when a review is dispatched; and `dev-testing/references/property-based.md`, read only once a property test is worth writing.
 
 ## How it routes
 
