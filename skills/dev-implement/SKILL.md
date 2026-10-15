@@ -77,6 +77,8 @@ Then carry on with the answers. Don't build the option you expect them to pick w
 
 A task is what `dev-ship` defines; most direct-mode changes are a single task. Each task goes test first, per `dev-testing`.
 
+**Changing behavior that existing tests pin?** Edit those tests to the new behavior first and watch them fail; the request is the requirement `dev-verify` traces them to. A new test beside an old one that still asserts the old behavior leaves the suite contradicting itself.
+
 - **Every task but the last** is committed, per `dev-ship`, once its tests and the full suite pass.
 - **The last task** — the only one, in most changes — is committed after `dev-verify`, so its review fixes land in it.
 
