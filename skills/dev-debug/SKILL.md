@@ -81,6 +81,7 @@ After two failed fixes, stop patching. Report what each attempt assumed, what th
 | Fixing the first thing you find | The first suspicious line is rarely the cause |
 | Changing things to see what happens | If you can't say why a change should work, you're guessing; guesses that work hide the real bug |
 | Widening a `try`/`catch` | That deletes the evidence, not the bug |
+| Falling back instead of failing | A default, an empty result or an error rethrown without its cause: the caller gets a plausible wrong answer, and nothing reports it |
 | Adding a retry or a wait | Waiting on a condition is fine; waiting on a duration hides a race |
 | "It works now" after several changes | Undo them one at a time until you know which one mattered |
 | Trusting a fix you never saw fail | See step 7 |
