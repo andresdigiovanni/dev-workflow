@@ -64,7 +64,7 @@ Two or more failures sharing a root cause get **one fix at the root**, closing a
 
 ## 6. When a fix already failed
 
-A fix that didn't hold — yours, or one the report says was tried — is evidence that its hypothesis was wrong. Don't adjust it: discard the hypothesis and go back to step 3 from the reproduction. Revert a failed attempt before the next one, so two guesses never stack.
+A fix that didn't hold — yours, or one the report says was tried — is evidence that its hypothesis was wrong. Don't adjust it: discard the hypothesis and go back to step 3 from the reproduction. Revert a failed attempt before the next one, so two guesses never stack. Before reverting it, append `Tried: <hypothesis> — <what the reproduction showed>` to the ledger (`dev-implement`, *The ledger*): after a compaction, a failed guess is exactly the one that comes back.
 
 After two failed fixes, stop patching. Report what each attempt assumed, what the reproduction showed instead, and what you would check next. A third guess at the same layer usually means the problem is in the design, and that is the user's call.
 

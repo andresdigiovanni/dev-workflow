@@ -42,6 +42,7 @@ Plan: fix — <finding> — <sha>
 Slice K: verified — <branch>
 Plan: verified — <branch>
 Decision: <what> — <why> — <cost if wrong>
+Tried: <hypothesis> — <what the reproduction showed>
 ```
 
 Resuming, by the task's last line:

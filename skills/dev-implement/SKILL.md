@@ -94,4 +94,5 @@ The ledger is what `dev-verify` checks against once the conversation is compacte
 
 - **`dev-explore` ran:** the settled request and decisions are already in it. Add every decision you settle along the way.
 - **Fast lane, something was asked or decided:** start it at the first question or decision. It is `.dev-runs/<slug>.md`, with a `Request:` line — the request as the user wrote it — then the answers and the `Decision:` lines. If the repo doesn't ignore `.dev-runs/`, add it to the file `git rev-parse --git-path info/exclude` names.
-- **Nothing asked and nothing decided:** no ledger. `dev-verify` reads the request in the conversation.
+- **A fix that didn't hold:** its `Tried:` line, per `dev-debug`, *When a fix already failed*, starts the ledger if nothing else has.
+- **Nothing asked, decided or tried:** no ledger. `dev-verify` reads the request in the conversation.
