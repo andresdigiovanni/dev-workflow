@@ -129,7 +129,7 @@ Fix inline and move on. No second pass.
 
 ## Handoff
 
-1. Save to `docs/plans/YYYY-MM-DD-<slug>.md`.
+1. Save to `docs/plans/YYYY-MM-DD-<slug>.md`, or where the repo already keeps plans.
 2. Link it, and the spec when `dev-explore` wrote one this session and it isn't approved yet.
 3. Wait for the user's go-ahead before implementation starts. One go-ahead covers both.
 

@@ -7,12 +7,12 @@ For any request that changes repository files. A question, an explanation or a r
 | Lane | When | Path |
 |---|---|---|
 | **Trivial** | No logic changes and nothing to decide: a typo, docs, comments, copy, or a config value the request states exactly. See the exclusions below | *Trivial lane*, below. Runs from the router; only steps 5 and 8 load a skill |
-| **Bug** | A bug report, a test failing unexpectedly, behavior that differs from what was expected | `dev-debug` first. Then the lane the fix's size picks, entering at `dev-implement` — or at `dev-explore` when the fix is *Planned* or its decisions take more than one round of questions. Never *Trivial*: a logic fix changes behavior |
+| **Bug** | A bug report, a test failing unexpectedly, behavior that differs from what was expected | `dev-debug` first; it picks the lane the fix enters. Never *Trivial*: a logic fix changes behavior |
 | **Fast** | A clear request, code a search finds, ≤3 commits, and every open behavior, surface or dependency fits in one round of questions with no answer that would change the approach. Most changes | `dev-implement` → `dev-verify` → `dev-ship` |
 | **Explored** | ≤3 commits, and any of: an ambiguous request, a design choice with more than one defensible answer, open surfaces that need more than one round, code a search doesn't find | `dev-explore` → `dev-implement` → `dev-verify` → `dev-ship` |
 | **Planned** | >3 commits | `dev-explore` → `dev-plan` → `dev-implement` → `dev-verify` → `dev-ship`. Always explored: at this size the approach itself is a decision |
 
-**Not Trivial, but Fast:** a config value that adds a key, a value a test asserts on, or a count or limit with two readings ("retry 3 times": 3 calls or 4?). A test that asserts on the value is updated to the requested value first and watched fail.
+**Not Trivial, but Fast:** a config value that adds a key, a value a test asserts on, or a count or limit with two readings ("retry 3 times": 3 calls or 4?).
 
 **Commits** count behaviors that could each be tested, reviewed and reverted alone — not files. A rename or refactor breaks callers, so it is *Fast*, not *Trivial*.
 
@@ -53,11 +53,9 @@ A request **pins down** a surface when it gives its exact shape: the name, the p
    - the go-ahead on spec and plan, or on a restated request when an answer changed the scope;
    - two failed fixes for one bug;
    - how to integrate;
-   - where a delegated plan runs — a worktree or a branch (`dev-implement`).
+   - where a delegated plan runs.
 
-   Decide everything else and record `Decision: <what> — <why> — <cost if wrong>`. If the cost is something a caller would see, it was a stop: ask. Never stop between the tasks of an approved plan: a task blocked on a user's decision is asked while the others carry on.
+   Decide everything else and record `Decision: <what> — <why> — <cost if wrong>`. If the cost is something a caller would see, it was a stop: ask.
 4. **Build only what was asked.** Every changed line traces to the request or the spec. No drive-by refactors, reformatting, renames, speculative helpers, options "for later", unrelated fixes, error handling for inputs no caller sends, or comments that narrate the change — list them as follow-ups.
 
-**Git.** Branch first, without asking — except where a delegated plan runs, which the user chooses. Name it by the repo's convention, else by the work's slug. Never commit to the default branch unless the user says so. Stage by path, never `git add -A`: the tree may hold the user's own work. One commit per task, after its tests and its review, if it has one, pass. Never amend, rebase or force-push, and never delete a remote branch. Never skip the repo's commit hooks or checks — no `--no-verify`, no overriding the hooks path. Once the work is integrated or discarded, `dev-ship` removes the local branch and worktree.
-
-Specs go in `docs/specs/`, plans in `docs/plans/`, ledgers in `.dev-runs/` (git-ignored). A convention the repo already has wins.
+**Git.** Branch first, without asking — except where a delegated plan runs, which the user chooses. Name it by the repo's convention, else by the work's slug. Never commit to the default branch unless the user says so. Stage by path, never `git add -A`: the tree may hold the user's own work. Never amend, rebase or force-push, and never delete a remote branch. Never skip the repo's commit hooks or checks — no `--no-verify`, no overriding the hooks path.

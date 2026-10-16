@@ -10,7 +10,7 @@ The fix you can write in thirty seconds is usually a fix to the symptom. This sk
 A bug report starts here, not in `dev-explore`: steps 1–3 are the exploration. Once they point to a fix:
 
 - **The fix carries a decision** — a new surface, a behavior change nobody asked for, a mechanism outside the request: ask it in one round, per `dev-implement`, *Sort every decision the request didn't settle*. Load `dev-explore` only when it takes more than one round, or when the fix is *Planned*.
-- **Pick the lane by the size of the fix**, entering at `dev-implement` — or at `dev-explore` when the fix is *Planned* or its decisions take more than one round, per the router's *Bug* row.
+- **Pick the lane by the size of the fix**, entering at `dev-implement` — or at `dev-explore` when the fix is *Planned* or its decisions take more than one round.
 - **The reproduction test from step 1 is that lane's failing test.** `dev-implement` and `dev-testing` start from it, not from a second one. The lane ends in `dev-verify` and `dev-ship` as usual.
 
 ## 1. Reproduce before anything

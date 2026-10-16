@@ -95,7 +95,7 @@ Follow-ups: <things it noticed and deliberately left alone — or none>
 - **Blocked on an unlisted surface or dependency:** it goes to the user — it is not yours to settle either. Append `waiting`, and `unblocked` when they answer.
 - **Any other block** — broken tooling, a task the plan made impossible: it is yours. Diagnose it per `dev-debug`, decide, record the `Decision:` line, and re-dispatch.
 
-**While a task waits on the user,** keep executing the tasks that don't consume its `Interfaces`. Stop only when every remaining task does.
+Never stop between tasks to check in: the plan's go-ahead covered them. **While a task waits on the user,** keep executing the tasks that don't consume its `Interfaces`. Stop only when every remaining task does.
 
 1. Before dispatching the next task, set the waiting task's uncommitted diff aside with `git stash push -u -m "task N"`, and log it as `Task N: waiting — <question> — stashed`. The next task's diff and commit then hold only its own work.
 2. When you re-dispatch it, restore it with `git stash pop stash@{<n>}`, where `<n>` is the entry `git stash list` shows for `task N`. A bare `pop` takes the newest entry, which may be another task's.

@@ -102,7 +102,7 @@ A surface is a contract: once something depends on it, taking it back is a break
 
 ### When a plan follows (*Planned* lane)
 
-Write `docs/specs/YYYY-MM-DD-<slug>.md`. The plan argues from it, and the conversation doesn't survive compaction. Cover only what the work needs:
+Write `docs/specs/YYYY-MM-DD-<slug>.md`, or where the repo already keeps specs. The plan argues from it, and the conversation doesn't survive compaction. Cover only what the work needs:
 
 - the goal;
 - each settled decision, with the alternatives rejected and why;
