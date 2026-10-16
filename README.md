@@ -38,7 +38,7 @@ The router names five lanes; the first that fits wins, and the agent states the 
 
 | Lane | When | Path |
 |---|---|---|
-| Trivial | no logic changes and nothing to decide: typo, docs, comments, copy, a config value the request states exactly | runs from the router alone, no skill loaded: branch, edit, suite and linter (not for docs nothing builds or tests), scope trace, instruction-file search, commit, report, ask how to integrate |
+| Trivial | no logic changes and nothing to decide: typo, docs, comments, copy, a config value the request states exactly | runs from the router: branch, edit, suite and linter (not for docs nothing builds or tests), scope trace, instruction-file search, commit, report; it loads `dev-ship` only to integrate |
 | Bug | a bug report or unexpected behavior | `dev-debug`, then the lane the fix's size picks — never Trivial; its reproduction test is that lane's failing test |
 | Fast | clear request, findable code, 3 commits or fewer, every open question fits in one round and no answer would change the approach | `dev-implement` → `dev-verify` → `dev-ship` |
 | Explored | 3 commits or fewer, with ambiguity, a design choice with more than one defensible answer, open surfaces that need more than one round, or code a search doesn't find | `dev-explore` → fast lane |

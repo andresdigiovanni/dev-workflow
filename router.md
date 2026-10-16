@@ -6,7 +6,7 @@ For any request that changes repository files. A question, an explanation or a r
 
 | Lane | When | Path |
 |---|---|---|
-| **Trivial** | No logic changes and nothing to decide: a typo, docs, comments, copy, or a config value the request states exactly. See the exclusions below | *Trivial lane*, below. No skill loaded |
+| **Trivial** | No logic changes and nothing to decide: a typo, docs, comments, copy, or a config value the request states exactly. See the exclusions below | *Trivial lane*, below. Runs from the router; only steps 5 and 8 load a skill |
 | **Bug** | A bug report, a test failing unexpectedly, behavior that differs from what was expected | `dev-debug` first. Then the lane the fix's size picks, entering at `dev-implement` — or at `dev-explore` when the fix is *Planned* or its decisions take more than one round of questions. Never *Trivial*: a logic fix changes behavior |
 | **Fast** | A clear request, code a search finds, ≤3 commits, and every open behavior, surface or dependency fits in one round of questions with no answer that would change the approach. Most changes | `dev-implement` → `dev-verify` → `dev-ship` |
 | **Explored** | ≤3 commits, and any of: an ambiguous request, a design choice with more than one defensible answer, open surfaces that need more than one round, code a search doesn't find | `dev-explore` → `dev-implement` → `dev-verify` → `dev-ship` |
@@ -20,7 +20,7 @@ For any request that changes repository files. A question, an explanation or a r
 
 **Say the lane** before starting — the *Trivial* lane too — and again on a switch: one line with the fact that picked it — `Lane: Fast — one function, the request names it`. A wrong lane is invisible until a phase trips on it; this line lets the user catch it first. A lane the user names wins.
 
-**Load each skill when its phase starts, and follow it.** A phase run from memory drops its gates. Also load `dev-testing` before any implementation code, `dev-debug` on any unexpected behavior, and `dev-skills` when editing this set.
+**Load each skill when its phase starts, and follow it.** A phase run from memory drops its gates. Also load `dev-testing` before any implementation code, and `dev-debug` on any unexpected behavior.
 
 ### Trivial lane
 
@@ -32,8 +32,8 @@ These steps are `dev-verify`'s *Trivial* row, run inline:
 4. Trace every hunk to the request. Revert what traces to nothing.
 5. Search the instruction files for every path, command or name the diff changes. A hit loads `dev-agents-md`.
 6. Commit once.
-7. Report in `dev-verify`'s compact form: `Checks:`, `Scope:` and `Agent file:`. There is no pre-change run on this lane, so a red test is reported red, not attributed.
-8. Ask how to integrate — `dev-ship`, *Integrating*, has the options.
+7. Report in three lines: `Checks:` each command → result, or `not run — docs only`; `Scope:` every hunk traced, reverted hunks listed; `Agent file:` no update, updated, or the proposal. There is no pre-change run on this lane, so a red test is reported red, not attributed.
+8. Load `dev-ship` to integrate: *Integrating*, then *Cleanup*.
 
 ### Terms
 
