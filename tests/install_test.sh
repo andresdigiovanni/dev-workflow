@@ -129,6 +129,65 @@ test_scope_notes_not_a_repo() {
   saw "(! not a git repository)"
 }
 
+# --- agent menu -------------------------------------------------------------
+
+test_agents_detected_binary_is_selected() {
+  fake_agent claude
+  tty_run '\n' --scope global --yes
+  saw "[x] 1) Claude Code  (detected)"
+  exists "$HOME/.claude/skills/dev-debug"
+}
+
+test_agents_detected_config_dir_is_selected() {
+  mkdir -p "$HOME/.codex"
+  tty_run '\n' --scope global --yes
+  saw "[x] 2) Codex CLI  (detected)"
+  exists "$HOME/.agents/skills/dev-debug"
+}
+
+test_agents_line_replaces_selection() {
+  fake_agent claude
+  tty_run '2 3\n\n' --scope global --yes
+  exists "$HOME/.agents/skills/dev-debug"
+  exists "$HOME/.config/opencode/skills/dev-debug"
+  absent "$HOME/.claude"
+}
+
+test_agents_names_and_commas() {
+  tty_run 'claude,opencode\n\n' --scope global --yes
+  exists "$HOME/.claude/skills/dev-debug"
+  exists "$HOME/.config/opencode/skills/dev-debug"
+  absent "$HOME/.agents"
+}
+
+test_agents_invalid_token_keeps_selection() {
+  fake_agent claude
+  tty_run '2 9\n\n' --scope global --yes
+  saw "not an agent: 9"
+  exists "$HOME/.claude/skills/dev-debug"
+  absent "$HOME/.agents"
+}
+
+test_agents_doubled_comma_is_one_separator() {
+  tty_run 'claude,,opencode\n\n' --scope global --yes
+  not_saw "not an agent"
+  exists "$HOME/.claude/skills/dev-debug"
+  exists "$HOME/.config/opencode/skills/dev-debug"
+}
+
+test_agents_empty_selection_warns() {
+  tty_run '\n1\n\n' --scope global --yes
+  saw "select at least one agent"
+  exists "$HOME/.claude/skills/dev-debug"
+}
+
+test_agents_a_selects_all() {
+  tty_run 'a\n\n' --scope global --yes
+  exists "$HOME/.claude/skills/dev-debug"
+  exists "$HOME/.agents/skills/dev-debug"
+  exists "$HOME/.config/opencode/skills/dev-debug"
+}
+
 # --- runner -----------------------------------------------------------------
 
 failures=0

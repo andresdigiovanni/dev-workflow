@@ -198,39 +198,74 @@ prompt_read() {
 
 SELECTED_AGENTS=()
 
+agent_detected() {
+  case "$1" in
+    claude)   command -v claude   >/dev/null 2>&1 || [ -d "$HOME/.claude" ] ;;
+    codex)    command -v codex    >/dev/null 2>&1 || [ -d "$HOME/.codex" ] ;;
+    opencode) command -v opencode >/dev/null 2>&1 || [ -d "$HOME/.config/opencode" ] ;;
+    *) return 1 ;;
+  esac
+}
+
+# The AGENT_IDS index for a menu token: its number or its id.
+agent_index() {
+  local i
+  for i in "${!AGENT_IDS[@]}"; do
+    if [ "$1" = "$((i + 1))" ] || [ "$1" = "${AGENT_IDS[$i]}" ]; then
+      echo "$i"
+      return 0
+    fi
+  done
+  return 1
+}
+
 select_agents_interactive() {
-  local -a picked=(0 0 0)
-  local input idx i any
+  local -a picked=() next=() tokens=()
+  local input token idx i any bad mark note
+
+  for i in "${!AGENT_IDS[@]}"; do
+    picked[$i]=0
+    agent_detected "${AGENT_IDS[$i]}" && picked[$i]=1
+  done
 
   while true; do
     echo
     echo "Select target agent(s):"
     for i in "${!AGENT_LABELS[@]}"; do
-      local mark=" "
+      mark=" "
       [ "${picked[$i]}" = "1" ] && mark="x"
-      printf "  [%s] %d) %s\n" "$mark" "$((i + 1))" "${AGENT_LABELS[$i]}"
+      note=""
+      agent_detected "${AGENT_IDS[$i]}" && note="  (detected)"
+      printf "  [%s] %d) %s%s\n" "$mark" "$((i + 1))" "${AGENT_LABELS[$i]}" "$note"
     done
-    printf "  a) select all      (Enter to confirm)\n> "
+    printf 'Type the numbers or names to select (e.g. "1 3" or "claude,codex"), %s for all, Enter to confirm.\n> ' "'a'"
     prompt_read input || die "no input available — pass --agents instead"
 
-    case "$input" in
-      "")
-        any=0
-        for i in "${!picked[@]}"; do [ "${picked[$i]}" = "1" ] && any=1; done
-        [ "$any" = "1" ] && break
-        warn "select at least one agent"
-        ;;
-      a|A) for i in "${!picked[@]}"; do picked[$i]=1; done ;;
-      [1-9]|[1-9][0-9])
-        if [ "$input" -ge 1 ] && [ "$input" -le "${#AGENT_LABELS[@]}" ]; then
-          idx=$((input - 1))
-          if [ "${picked[$idx]}" = "1" ]; then picked[$idx]=0; else picked[$idx]=1; fi
-        else
-          warn "not a valid number"
-        fi
-        ;;
-      *) warn "type a number to toggle, 'a' for all, or Enter to confirm" ;;
-    esac
+    if [ -z "$input" ]; then
+      any=0
+      for i in "${!picked[@]}"; do [ "${picked[$i]}" = "1" ] && any=1; done
+      [ "$any" = "1" ] && break
+      warn "select at least one agent"
+      continue
+    fi
+    if [ "$input" = a ] || [ "$input" = A ] || [ "$input" = all ]; then
+      for i in "${!picked[@]}"; do picked[$i]=1; done
+      continue
+    fi
+
+    # read -a splits without globbing, so a stray * stays a token
+    IFS=', ' read -r -a tokens <<< "$input"
+    for i in "${!AGENT_IDS[@]}"; do next[$i]=0; done
+    bad=""
+    for token in ${tokens[@]+"${tokens[@]}"}; do
+      [ -n "$token" ] || continue
+      if idx="$(agent_index "$token")"; then next[$idx]=1; else bad="$token"; break; fi
+    done
+    if [ -n "$bad" ]; then
+      warn "not an agent: $bad"
+      continue
+    fi
+    picked=("${next[@]}")
   done
 
   for i in "${!AGENT_IDS[@]}"; do
