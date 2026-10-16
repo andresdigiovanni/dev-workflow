@@ -241,19 +241,66 @@ select_agents_interactive() {
   return 0
 }
 
-select_scope_interactive() {
-  local input
-  echo
-  echo "Install scope:"
-  echo "  1) Global  — your home directory, applies to every project"
-  echo "  2) Project — $PROJECT_DIR"
-  printf "> "
-  prompt_read input || die "no input available — pass --scope instead"
-  case "$input" in
-    2) SCOPE="project" ;;
-    *) SCOPE="global" ;;
-  esac
+same_dir() { [ "$(cd "$1" 2>/dev/null && pwd -P)" = "$(cd "$2" 2>/dev/null && pwd -P)" ]; }
+
+# What the scope menu says after the project path. git reports the
+# physical path, so the comparison is against pwd -P, not $1 as given.
+project_note() {
+  command -v git >/dev/null 2>&1 || return 0
+  local root
+  if root="$(git -C "$1" rev-parse --show-toplevel 2>/dev/null)"; then
+    if [ "$root" = "$(cd "$1" && pwd -P)" ]; then
+      echo "  (git repository)"
+    else
+      echo "  (inside git repository $root)"
+    fi
+  else
+    echo "  (! not a git repository)"
+  fi
 }
+
+select_scope_interactive() {
+  local input dir from_home=0
+  same_dir "$PROJECT_DIR" "$HOME" && from_home=1
+
+  while true; do
+    echo
+    echo "Install scope:"
+    echo "  1) Global  — your home directory, applies to every project"
+    if [ "$from_home" = 1 ]; then
+      echo "  2) Project — not offered from your home directory; type a project path"
+      printf 'Choose 1, or type a project path [1]:\n> '
+    else
+      echo "  2) Project — $PROJECT_DIR$(project_note "$PROJECT_DIR")"
+      printf 'Choose 1 or 2, or type a project path [1]:\n> '
+    fi
+    prompt_read input || die "no input available — pass --scope instead"
+
+    case "$input" in
+      ""|1|g|global) SCOPE="global"; return 0 ;;
+      2|p|project)
+        if [ "$from_home" = 1 ]; then
+          warn "a project install needs a project directory — type its path"
+          continue
+        fi
+        SCOPE="project"; return 0 ;;
+    esac
+
+    case "$input" in
+      "~")    dir="$HOME" ;;
+      "~/"*)  dir="$HOME/${input#\~/}" ;;
+      *)      dir="$input" ;;
+    esac
+    if [ -d "$dir" ]; then
+      PROJECT_DIR="$(cd "$dir" && pwd)"
+      SCOPE="project"
+      return 0
+    fi
+    warn "not a choice or an existing directory: $input"
+  done
+}
+
+PROJECT_DIR="$(cd "$PROJECT_DIR" 2>/dev/null && pwd)" || die "--dir does not exist: $PROJECT_DIR"
 
 if [ -n "$AGENTS_ARG" ]; then
   if [ "$AGENTS_ARG" = "all" ]; then
@@ -274,8 +321,6 @@ if [ -z "$SCOPE" ]; then
   can_prompt || die "not an interactive terminal — pass --scope (see --help)"
   select_scope_interactive
 fi
-
-PROJECT_DIR="$(cd "$PROJECT_DIR" 2>/dev/null && pwd)" || die "--dir does not exist: $PROJECT_DIR"
 
 # ---------------------------------------------------------------------------
 # Per-agent target paths
