@@ -18,6 +18,10 @@
 # Run with no flags for an interactive menu.
 set -euo pipefail
 
+# An exported CDPATH makes `cd dir` jump elsewhere and print the path, which
+# `$(cd dir && pwd)` would then capture twice.
+unset CDPATH
+
 # ---------------------------------------------------------------------------
 # Where this ships from
 # ---------------------------------------------------------------------------

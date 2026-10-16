@@ -95,6 +95,13 @@ test_scope_typed_file_asks_again() {
   exists "$PROJECT/.claude/skills/dev-debug"
 }
 
+test_scope_typed_path_ignores_cdpath() {
+  mkdir -p "$PROJECT/proj" "$CASE/elsewhere/proj"
+  CDPATH="$CASE/elsewhere" tty_run 'proj\n' --agents claude --yes
+  exists "$PROJECT/proj/.claude/skills/dev-debug"
+  absent "$CASE/elsewhere/proj/.claude"
+}
+
 test_scope_tilde_path_expands() {
   mkdir "$HOME/proj"
   tty_run '~/proj\n' --agents claude --yes
