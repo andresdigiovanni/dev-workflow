@@ -195,6 +195,97 @@ test_agents_a_selects_all() {
   exists "$HOME/.config/opencode/skills/dev-debug"
 }
 
+# --- plan and confirmation --------------------------------------------------
+
+test_plan_lists_paths_and_actions() {
+  tty_run '\n' --agents claude --scope global
+  saw "Plan:"
+  saw "Claude Code (global)"
+  saw "$HOME/.claude/skills"
+  saw "install $skill_count skills"
+  saw "create file"
+  saw "Proceed? [Y/n]"
+  exists "$HOME/.claude/skills/dev-debug"
+}
+
+test_plan_reinstall_updates_and_replaces() {
+  plain_run --agents claude --scope global
+  tty_run '\n' --agents claude --scope global
+  saw "update $skill_count skills"
+  saw "replace block"
+}
+
+test_plan_existing_file_gets_block_added() {
+  mkdir -p "$HOME/.claude"; echo "# mine" > "$HOME/.claude/CLAUDE.md"
+  tty_run '\n' --agents claude --scope global
+  saw "add block"
+}
+
+test_plan_declined_writes_nothing() {
+  tty_run 'n\n' --agents claude --scope global
+  status_is 1
+  saw "aborted"
+  absent "$HOME/.claude"
+}
+
+test_plan_yes_skips_the_question() {
+  tty_run '' --agents claude --scope global --yes
+  saw "Plan:"
+  not_saw "Proceed?"
+  exists "$HOME/.claude/skills/dev-debug"
+}
+
+test_plan_without_terminal_proceeds() {
+  plain_run --agents claude --scope global
+  status_is 0
+  saw "Plan:"
+  exists "$HOME/.claude/skills/dev-debug"
+}
+
+test_plan_shared_agents_md_listed_once() {
+  tty_run '\n' --agents codex,opencode --scope project
+  saw "same file as Codex CLI"
+  exists "$PROJECT/AGENTS.md"
+}
+
+test_plan_uninstall() {
+  plain_run --agents claude --scope global
+  tty_run 'y\n' --uninstall --agents claude --scope global
+  saw "remove $skill_count skills"
+  saw "remove block"
+  saw "Proceed? [y/N]"
+  absent "$HOME/.claude/skills/dev-debug"
+}
+
+test_plan_uninstall_enter_means_no() {
+  plain_run --agents claude --scope global
+  tty_run '\n' --uninstall --agents claude --scope global
+  status_is 1
+  saw "aborted"
+  exists "$HOME/.claude/skills/dev-debug"
+}
+
+test_plan_uninstall_of_nothing_says_so() {
+  tty_run 'n\n' --uninstall --agents claude --scope global
+  saw "$(printf '    skills  %-40s %s' "$HOME/.claude/skills" "nothing to remove")"
+  saw "$(printf '    router  %-40s %s' "$HOME/.claude/CLAUDE.md" "nothing to remove")"
+}
+
+test_plan_uninstall_yes_without_terminal() {
+  plain_run --agents claude --scope global
+  plain_run --uninstall --agents claude --scope global --yes
+  status_is 0
+  absent "$HOME/.claude/skills/dev-debug"
+}
+
+test_plan_uninstall_without_terminal_needs_yes() {
+  plain_run --agents claude --scope global
+  plain_run --uninstall --agents claude --scope global
+  status_is 1
+  saw "pass --yes"
+  exists "$HOME/.claude/skills/dev-debug"
+}
+
 # --- runner -----------------------------------------------------------------
 
 failures=0

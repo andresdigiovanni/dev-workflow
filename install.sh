@@ -82,7 +82,7 @@ Options:
   --uninstall, -u    Remove the skills and the router block that this
                      script previously installed. Does not touch anything
                      else in the target instruction file.
-  --yes, -y          Don't ask for confirmation before removing files.
+  --yes, -y          Don't ask for confirmation before writing or removing files.
   --help, -h         Show this help.
 
 With no options, both agents and scope are chosen from an interactive menu.
@@ -341,43 +341,29 @@ select_scope_interactive() {
 
 PROJECT_DIR="$(cd "$PROJECT_DIR" 2>/dev/null && pwd)" || die "--dir does not exist: $PROJECT_DIR"
 
-if [ -n "$AGENTS_ARG" ]; then
-  if [ "$AGENTS_ARG" = "all" ]; then
-    SELECTED_AGENTS=("${AGENT_IDS[@]}")
-  else
-    saved_ifs="$IFS"; IFS=','
-    for a in $AGENTS_ARG; do
-      case "$a" in claude|codex|opencode) SELECTED_AGENTS+=("$a") ;; *) die "unknown agent: $a" ;; esac
-    done
-    IFS="$saved_ifs"
-  fi
-else
-  can_prompt || die "not an interactive terminal — pass --agents (see --help)"
-  select_agents_interactive
-fi
-
-if [ -z "$SCOPE" ]; then
-  can_prompt || die "not an interactive terminal — pass --scope (see --help)"
-  select_scope_interactive
-fi
-
 # ---------------------------------------------------------------------------
 # Per-agent target paths
 # ---------------------------------------------------------------------------
 
 skills_dir_for() {
-  case "$1" in
-    claude)   [ "$SCOPE" = global ] && echo "$HOME/.claude/skills"             || echo "$PROJECT_DIR/.claude/skills" ;;
-    codex)    [ "$SCOPE" = global ] && echo "$HOME/.agents/skills"             || echo "$PROJECT_DIR/.agents/skills" ;;
-    opencode) [ "$SCOPE" = global ] && echo "$HOME/.config/opencode/skills"    || echo "$PROJECT_DIR/.opencode/skills" ;;
+  case "$1:$2" in
+    claude:global)    echo "$HOME/.claude/skills" ;;
+    claude:project)   echo "$PROJECT_DIR/.claude/skills" ;;
+    codex:global)     echo "$HOME/.agents/skills" ;;
+    codex:project)    echo "$PROJECT_DIR/.agents/skills" ;;
+    opencode:global)  echo "$HOME/.config/opencode/skills" ;;
+    opencode:project) echo "$PROJECT_DIR/.opencode/skills" ;;
   esac
 }
 
 instruction_file_for() {
-  case "$1" in
-    claude)   [ "$SCOPE" = global ] && echo "$HOME/.claude/CLAUDE.md"          || echo "$PROJECT_DIR/CLAUDE.md" ;;
-    codex)    [ "$SCOPE" = global ] && echo "$HOME/.codex/AGENTS.md"           || echo "$PROJECT_DIR/AGENTS.md" ;;
-    opencode) [ "$SCOPE" = global ] && echo "$HOME/.config/opencode/AGENTS.md" || echo "$PROJECT_DIR/AGENTS.md" ;;
+  case "$1:$2" in
+    claude:global)    echo "$HOME/.claude/CLAUDE.md" ;;
+    claude:project)   echo "$PROJECT_DIR/CLAUDE.md" ;;
+    codex:global)     echo "$HOME/.codex/AGENTS.md" ;;
+    codex:project)    echo "$PROJECT_DIR/AGENTS.md" ;;
+    opencode:global)  echo "$HOME/.config/opencode/AGENTS.md" ;;
+    opencode:project) echo "$PROJECT_DIR/AGENTS.md" ;;
   esac
 }
 
@@ -507,24 +493,122 @@ remove_block() {
 }
 
 # ---------------------------------------------------------------------------
+# Plan: what each target's directory and file will undergo
+# ---------------------------------------------------------------------------
+
+# How many dev-workflow skills are already in $1.
+skills_present() {
+  local n=0 name
+  for name in "${SKILL_NAMES[@]}"; do
+    [ -e "$1/$name" ] && is_ours "$1/$name" "$name" && n=$((n + 1))
+  done
+  echo "$n"
+}
+
+skills_action() {
+  local n
+  n="$(skills_present "$1")"
+  if [ "$MODE" = install ]; then
+    if [ "$n" -gt 0 ]; then echo "update ${#SKILL_NAMES[@]} skills"; else echo "install ${#SKILL_NAMES[@]} skills"; fi
+  else
+    if [ "$n" -gt 0 ]; then echo "remove $n skills"; else echo "nothing to remove"; fi
+  fi
+}
+
+router_action() {
+  local has_block=0
+  [ -f "$1" ] && grep -qxF "$MARKER_START" "$1" && has_block=1
+  if [ "$MODE" = install ]; then
+    if [ ! -f "$1" ]; then echo "create file"
+    elif [ "$has_block" = 1 ]; then echo "replace block"
+    else echo "add block"; fi
+  else
+    if [ "$has_block" = 1 ]; then echo "remove block"; else echo "nothing to remove"; fi
+  fi
+}
+
+print_plan() {
+  local target agent scope label skills_dir instr_file action i
+  local -a files=() labels=()
+  echo
+  echo "Plan:"
+  for target in "${TARGETS[@]}"; do
+    agent="${target%%:*}"; scope="${target#*:}"
+    label="$(label_for "$agent")"
+    skills_dir="$(skills_dir_for "$agent" "$scope")"
+    instr_file="$(instruction_file_for "$agent" "$scope")"
+
+    action="$(router_action "$instr_file")"
+    i=0
+    while [ "$i" -lt "${#files[@]}" ]; do
+      [ "${files[$i]}" = "$instr_file" ] && action="same file as ${labels[$i]}"
+      i=$((i + 1))
+    done
+    files+=("$instr_file"); labels+=("$label")
+
+    printf '  %s (%s)\n' "$label" "$scope"
+    printf '    skills  %-40s %s\n' "$skills_dir" "$(skills_action "$skills_dir")"
+    printf '    router  %-40s %s\n' "$instr_file" "$action"
+  done
+}
+
+# ---------------------------------------------------------------------------
 # Confirmation
 # ---------------------------------------------------------------------------
 
+# confirm <question> <y|n> — the second argument is what Enter means.
 confirm() {
   [ "$ASSUME_YES" = "1" ] && return 0
-  can_prompt || die "no terminal to confirm on — pass --yes"
-  local reply
-  printf '%s [y/N] ' "$1"
+  local reply hint="[y/N]"
+  [ "$2" = y ] && hint="[Y/n]"
+  printf '%s %s ' "$1" "$hint"
   prompt_read reply || true
-  case "$reply" in y|Y|yes|YES) return 0 ;; *) return 1 ;; esac
+  case "$reply" in
+    y|Y|yes|YES) return 0 ;;
+    "") [ "$2" = y ] ;;
+    *) return 1 ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
+TARGETS=()
+
+if [ "${#TARGETS[@]}" -eq 0 ]; then
+  if [ -n "$AGENTS_ARG" ]; then
+    if [ "$AGENTS_ARG" = "all" ]; then
+      SELECTED_AGENTS=("${AGENT_IDS[@]}")
+    else
+      saved_ifs="$IFS"; IFS=','
+      for a in $AGENTS_ARG; do
+        case "$a" in claude|codex|opencode) SELECTED_AGENTS+=("$a") ;; *) die "unknown agent: $a" ;; esac
+      done
+      IFS="$saved_ifs"
+    fi
+  else
+    can_prompt || die "not an interactive terminal — pass --agents (see --help)"
+    select_agents_interactive
+  fi
+
+  if [ -z "$SCOPE" ]; then
+    can_prompt || die "not an interactive terminal — pass --scope (see --help)"
+    select_scope_interactive
+  fi
+  for agent in "${SELECTED_AGENTS[@]}"; do TARGETS+=("$agent:$SCOPE"); done
+fi
+
 echo
-info "${BOLD}dev-workflow${RESET} — ${MODE} · scope: ${SCOPE}$([ "$SCOPE" = project ] && echo " ($PROJECT_DIR)")"
+info "${BOLD}dev-workflow${RESET} — ${MODE}"
+print_plan
+echo
+if [ "$MODE" = install ]; then
+  if can_prompt && ! confirm "Proceed?" y; then info "aborted"; exit 1; fi
+else
+  [ "$ASSUME_YES" = 1 ] || can_prompt || die "no terminal to confirm on — pass --yes"
+  confirm "Proceed?" n || { info "aborted"; exit 1; }
+fi
 
 # De-duplicate instruction files: codex and opencode share AGENTS.md when
 # scope is project, so the block is written once, not twice.
@@ -538,17 +622,17 @@ already_processed() {
 if [ "$MODE" = "install" ]; then
   build_block
 
-  for agent in "${SELECTED_AGENTS[@]}"; do
-    label="$(label_for "$agent")"
-    step "$label"
+  for target in "${TARGETS[@]}"; do
+    agent="${target%%:*}"; scope="${target#*:}"
+    step "$(label_for "$agent") ($scope)"
 
-    target_skills_dir="$(skills_dir_for "$agent")"
+    target_skills_dir="$(skills_dir_for "$agent" "$scope")"
     for name in "${SKILL_NAMES[@]}"; do
       install_skill "$name" "$target_skills_dir"
     done
     ok "${#SKILL_NAMES[@]} skills → $target_skills_dir"
 
-    instr_file="$(instruction_file_for "$agent")"
+    instr_file="$(instruction_file_for "$agent" "$scope")"
     if already_processed "$instr_file"; then
       ok "router block already written to $instr_file"
       continue
@@ -565,24 +649,19 @@ if [ "$MODE" = "install" ]; then
   info "without touching anything else in the instruction file."
 
 else
-  if ! confirm "Remove dev-workflow skills and router block for: ${SELECTED_AGENTS[*]} (${SCOPE})?"; then
-    info "aborted"
-    exit 1
-  fi
+  for target in "${TARGETS[@]}"; do
+    agent="${target%%:*}"; scope="${target#*:}"
+    step "$(label_for "$agent") ($scope)"
 
-  for agent in "${SELECTED_AGENTS[@]}"; do
-    label="$(label_for "$agent")"
-    step "$label"
-
-    target_skills_dir="$(skills_dir_for "$agent")"
+    target_skills_dir="$(skills_dir_for "$agent" "$scope")"
     for name in "${SKILL_NAMES[@]}"; do
       remove_skill "$name" "$target_skills_dir"
     done
     rmdir "$target_skills_dir" 2>/dev/null || true
-    [ "$SCOPE" = project ] && { rmdir "$(dirname "$target_skills_dir")" 2>/dev/null || true; }
+    [ "$scope" = project ] && { rmdir "$(dirname "$target_skills_dir")" 2>/dev/null || true; }
     ok "skills removed from $target_skills_dir"
 
-    instr_file="$(instruction_file_for "$agent")"
+    instr_file="$(instruction_file_for "$agent" "$scope")"
     if already_processed "$instr_file"; then
       ok "router block already removed from $instr_file"
       continue
