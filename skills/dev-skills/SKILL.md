@@ -72,7 +72,7 @@ Firing is half of it. For an edit that changes behavior, write the scenario that
 
 Run both on the smallest model the set is meant to work with, not only the strongest. A strong model often does the right thing unprompted, so a clean before-run on it says nothing about a smaller one.
 
-**Keep the scenarios.** This repository's `evals/` holds them, one folder each, built by `evals/setup.sh` with the working copy's skills installed. Before an edit, re-run every scenario whose `Tests:` line names a skill or section you change — a rewording in one skill can open a gate another relies on. A new scenario that caught a real trap goes there, per `evals/README.md`.
+**Keep the scenarios.** In a checkout of the set, `evals/` holds them, one folder each, built by `evals/setup.sh` with the checkout's skills installed. Before an edit, re-run every scenario whose `Tests:` line names a skill or section you change — a rewording in one skill can open a gate another relies on. A new scenario that caught a real trap goes there, per `evals/README.md`.
 
 ## Keep the set small
 
