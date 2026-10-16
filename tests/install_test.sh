@@ -286,6 +286,82 @@ test_plan_uninstall_without_terminal_needs_yes() {
   exists "$HOME/.claude/skills/dev-debug"
 }
 
+# --- existing installs ------------------------------------------------------
+
+test_existing_update_refreshes_everything_found() {
+  plain_run --agents claude --scope global
+  plain_run --agents codex --scope project
+  echo "stale" >> "$HOME/.claude/skills/dev-debug/SKILL.md"
+  tty_run '\n\n'
+  saw "dev-workflow is already installed:"
+  saw "Claude Code (global)"
+  saw "Codex CLI (project)"
+  cmp -s "$HOME/.claude/skills/dev-debug/SKILL.md" "$here/../skills/dev-debug/SKILL.md" \
+    || fail "global skill not refreshed"
+  absent "$PROJECT/.claude"
+}
+
+test_existing_install_elsewhere_goes_to_the_menus() {
+  plain_run --agents claude --scope global
+  tty_run '2\n2\n\n2\n\n'
+  exists "$PROJECT/.agents/skills/dev-debug"
+}
+
+test_existing_menu_uninstall() {
+  plain_run --agents claude --scope global
+  tty_run '3\ny\n'
+  saw "remove $skill_count skills"
+  absent "$HOME/.claude/skills/dev-debug"
+  absent "$HOME/.claude/CLAUDE.md"
+}
+
+test_existing_invalid_choice_asks_again() {
+  plain_run --agents claude --scope global
+  tty_run '9\n3\ny\n'
+  saw "type 1, 2 or 3"
+  absent "$HOME/.claude/skills/dev-debug"
+}
+
+test_existing_uninstall_flag_removes_what_is_found() {
+  plain_run --agents claude --scope global
+  tty_run 'y\n' --uninstall
+  not_saw "Select target"
+  absent "$HOME/.claude/skills/dev-debug"
+}
+
+test_existing_uninstall_flag_with_nothing_found() {
+  tty_run '' --uninstall
+  status_is 0
+  saw "Nothing to uninstall: no dev-workflow skills globally or in"
+}
+
+test_existing_flags_skip_the_menu() {
+  plain_run --agents claude --scope global
+  tty_run '\n' --agents claude --scope global
+  not_saw "already installed"
+}
+
+test_existing_scope_flag_alone_skips_the_menu() {
+  plain_run --agents claude --scope global
+  tty_run '\n\n' --scope global
+  not_saw "already installed"
+  saw "Select target agent(s):"
+}
+
+test_existing_home_not_counted_twice() {
+  PROJECT="$HOME"
+  plain_run --agents claude --scope global
+  tty_run '\n\n'
+  not_saw "Claude Code (project)"
+  absent "$HOME/CLAUDE.md"
+}
+
+test_existing_none_goes_to_the_menus() {
+  tty_run '1\n\n\n\n'
+  not_saw "already installed"
+  exists "$HOME/.claude/skills/dev-debug"
+}
+
 # --- runner -----------------------------------------------------------------
 
 failures=0

@@ -79,13 +79,15 @@ If you already have this repository checked out, `./install.sh` works the same w
 
 Codex CLI skills go to `~/.agents/skills` (or `.agents/skills` in a project). If an earlier version of this installer put them in `.codex/skills`, delete the `dev-*` folders there.
 
-Running install again — with the same or different agents — updates an existing install in place: skills are refreshed and the instruction-file block is replaced, without touching anything else already in that file.
+Running install again — with the same or different agents — updates an existing install in place: skills are refreshed and the instruction-file block is replaced, without touching anything else already in that file. With no options, it lists the installs it finds — globally and in the current directory — and offers to update them, install somewhere else, or uninstall.
 
 ## Uninstall
 
 ```
 curl -fsSL https://raw.githubusercontent.com/andresdigiovanni/dev-workflow/main/install.sh | bash -s -- --uninstall
 ```
+
+With no other options this removes every install found globally and in the current directory, after showing what it will remove.
 
 Or, non-interactively:
 

@@ -85,7 +85,11 @@ Options:
   --yes, -y          Don't ask for confirmation before writing or removing files.
   --help, -h         Show this help.
 
-With no options, both agents and scope are chosen from an interactive menu.
+With no options, both agents and scope are chosen from an interactive menu —
+unless dev-workflow is already installed globally or in the current
+directory, in which case it offers to update it, install somewhere else, or
+uninstall. --uninstall with neither --agents nor --scope removes every
+install it finds.
 Every install is a plain copy — nothing here is ever symlinked, and once
 installed a target has no dependency on this script or on GitHub.
 EOF
@@ -553,6 +557,46 @@ print_plan() {
 }
 
 # ---------------------------------------------------------------------------
+# Existing installs
+# ---------------------------------------------------------------------------
+
+# Every agent:scope whose skills directory already holds a dev-workflow
+# skill. From $HOME the project paths are the global ones, so only global.
+find_installs() {
+  local scope agent
+  FOUND=()
+  for scope in global project; do
+    [ "$scope" = project ] && same_dir "$PROJECT_DIR" "$HOME" && continue
+    for agent in "${AGENT_IDS[@]}"; do
+      if [ "$(skills_present "$(skills_dir_for "$agent" "$scope")")" -gt 0 ]; then
+        FOUND+=("$agent:$scope")
+      fi
+    done
+  done
+  return 0
+}
+
+choose_existing_action() {
+  local input target
+  echo
+  echo "dev-workflow is already installed:"
+  for target in "${FOUND[@]}"; do
+    printf '  %s (%s)  %s\n' "$(label_for "${target%%:*}")" "${target#*:}" \
+      "$(skills_dir_for "${target%%:*}" "${target#*:}")"
+  done
+  while true; do
+    printf '  1) Update   2) Install somewhere else   3) Uninstall\nChoose [1]:\n> '
+    prompt_read input || die "no input available — pass --agents and --scope instead"
+    case "$input" in
+      ""|1) TARGETS=("${FOUND[@]}"); return 0 ;;
+      2)    return 0 ;;
+      3)    MODE="uninstall"; TARGETS=("${FOUND[@]}"); return 0 ;;
+      *)    warn "type 1, 2 or 3" ;;
+    esac
+  done
+}
+
+# ---------------------------------------------------------------------------
 # Confirmation
 # ---------------------------------------------------------------------------
 
@@ -575,6 +619,19 @@ confirm() {
 # ---------------------------------------------------------------------------
 
 TARGETS=()
+
+if [ -z "$AGENTS_ARG" ] && [ -z "$SCOPE" ]; then
+  find_installs
+  if [ "$MODE" = uninstall ]; then
+    if [ "${#FOUND[@]}" -eq 0 ]; then
+      info "Nothing to uninstall: no dev-workflow skills globally or in $PROJECT_DIR. Pass --dir for another project."
+      exit 0
+    fi
+    TARGETS=("${FOUND[@]}")
+  elif [ "${#FOUND[@]}" -gt 0 ] && can_prompt; then
+    choose_existing_action
+  fi
+fi
 
 if [ "${#TARGETS[@]}" -eq 0 ]; then
   if [ -n "$AGENTS_ARG" ]; then
