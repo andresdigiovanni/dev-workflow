@@ -228,6 +228,13 @@ test_plan_declined_writes_nothing() {
   absent "$HOME/.claude"
 }
 
+test_plan_end_of_input_aborts() {
+  tty_run '\004' --agents claude --scope global
+  status_is 1
+  saw "aborted"
+  absent "$HOME/.claude"
+}
+
 test_plan_yes_skips_the_question() {
   tty_run '' --agents claude --scope global --yes
   saw "Plan:"

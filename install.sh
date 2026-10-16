@@ -606,7 +606,8 @@ confirm() {
   local reply hint="[y/N]"
   [ "$2" = y ] && hint="[Y/n]"
   printf '%s %s ' "$1" "$hint"
-  prompt_read reply || true
+  # End of input is not Enter: it never means yes.
+  prompt_read reply || { echo; return 1; }
   case "$reply" in
     y|Y|yes|YES) return 0 ;;
     "") [ "$2" = y ] ;;
