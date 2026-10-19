@@ -1,12 +1,12 @@
 # dev-workflow
 
-A development workflow as nine portable skills: five phases plus four support skills. Every phase that can be skipped carries a written criterion for when.
+A development workflow as eight portable skills: five phases plus three support skills. Every phase that can be skipped carries a written criterion for when.
 
 ## Layout
 
 ```
 dev-workflow/
-├── router.md          # the router: lanes, four global rules, git
+├── router.md          # the router: lanes, branching, terms, four global rules
 ├── install.sh         # installs the skills and the router block
 ├── README.md
 ├── evals/             scenarios that check the skills — not installed
@@ -17,12 +17,11 @@ dev-workflow/
     ├── dev-verify/        evidence → spec compliance → fresh review
     ├── dev-testing/       the test discipline
     ├── dev-debug/         reproduce → root cause → the fix that deletes
-    ├── dev-ship/          one commit per task, size budget, integration
-    ├── dev-agents-md/     keep the repo's agent instruction file honest
+    ├── dev-ship/          Trivial lane, one commit per task, integration
     └── dev-skills/        maintain this set
 ```
 
-One `SKILL.md` per skill, with three reference files read only when needed: `dev-implement/references/delegated.md`, the plan-execution mode, read only when there is a plan, so small changes don't load it; `dev-verify/references/review.md`, the fresh reviewer's brief and how its findings are ruled on, read only when a review is dispatched; and `dev-testing/references/property-based.md`, read only once a property test is worth writing.
+One `SKILL.md` per skill, with four reference files read only when needed: `dev-implement/references/delegated.md`, the plan-execution mode, read only when there is a plan, so small changes don't load it; `dev-verify/references/review.md`, the fresh reviewer's brief and how its findings are ruled on, read only when a review is dispatched; `dev-plan/references/builder-check.md`, the fresh read of a plan by someone who can't ask, read once the plan's self-review is done; and `dev-testing/references/property-based.md`, read only once a property test is worth writing.
 
 ## How it routes
 
@@ -32,29 +31,15 @@ Around that path:
 
 - `dev-testing` is loaded before any test or code is written, in every lane that writes code.
 - Unexpected behavior in any phase goes to `dev-debug`; a phase that shows the lane no longer fits switches lanes from where it is.
-- `dev-agents-md` runs when a change touches something the repo's agent instruction file documents; `dev-skills` when editing this skill set.
+- `dev-verify` checks every change against the repo's agent instruction file and updates it when the change made it wrong; `dev-skills` runs when editing this skill set.
 
-The router names five lanes; the first that fits wins, and the agent states the lane it picked in one line, so a wrong one can be overridden before work starts. `router.md` is the authority — this table is a summary:
+`router.md` is the authority: the five lanes and when each fits, branching, the terms the skills share, the four rules that hold everywhere — including the only things the work stops to ask. The installer puts it in the agent's instruction file. In short:
 
-| Lane | When | Path |
-|---|---|---|
-| Trivial | no logic changes and nothing to decide: typo, docs, comments, copy, a config value the request states exactly | runs from the router: branch, edit, suite and linter (not for docs nothing builds or tests), scope trace, instruction-file search, commit, report; it loads `dev-ship` only to integrate |
-| Bug | a bug report or unexpected behavior | `dev-debug`, then the lane the fix's size picks — never Trivial; its reproduction test is that lane's failing test |
-| Fast | clear request, findable code, 3 commits or fewer, every open question fits in one round and no answer would change the approach | `dev-implement` → `dev-verify` → `dev-ship` |
-| Explored | 3 commits or fewer, with ambiguity, a design choice with more than one defensible answer, open surfaces that need more than one round, or code a search doesn't find | `dev-explore` → fast lane |
-| Planned | more than 3 commits | `dev-explore` (spec, approaches with their trade-offs) → `dev-plan` → delegated `dev-implement` → `dev-verify` → `dev-ship` |
-
-`dev-verify` scales its gates to the diff: at 50 changed lines or fewer, tests excluded, with no new surface and no plan, its review is a self-run pass instead of a sub-agent — unless its security triage hits: a diff that changes authentication, authorization, secrets, cryptography, permissions, or how outside input reaches a query, shell, path, template or deserializer always gets a fresh reviewer. Reviewers report only findings they can trigger, ranked critical, important or minor, and a finding the author disputes goes to a fresh verifier rather than being ruled on by the author. A request that changes no file, such as a question, doesn't enter the workflow.
-
-The work stops for the user only on the decisions listed in the router's rule 3: an open surface, a new dependency the request doesn't name, a fact only the user holds, a behavior the request left with two readings, a go-ahead on spec and plan (or on a restated request when an answer changed the scope), two failed fixes, and how to integrate. Everything else is decided and recorded.
-
-Three things hold across the lanes:
-
-- **Tests first, proven.** Every test is watched fail before the code that turns it green; a regression test is proven red by reverting its fix; a mutation pass shows the new tests assert something. On every lane that loads `dev-implement`, the suite runs once before the first edit, so a pre-existing red is told apart from one the change caused.
-- **Only what was asked.** A new surface — an endpoint, a CLI command or flag, an exported function or type, a config key — must justify itself against a requirement — in `dev-explore`, or in `dev-implement`'s single round of questions on the fast and bug lanes — unless the request already names it with its exact shape. `dev-verify` then traces every hunk and every surface back to the spec or the request, and reverts what traces to nothing.
-- **Tests and checks aren't bent to pass.** `dev-verify` traces every edit to an existing test — a changed expectation, a loosened assertion, a skip, a deletion — and every change to the linter, formatter, type checker or CI configuration to a requirement that changed that behavior, and reverts the rest.
-
-One task, one commit: a task is committed once its tests pass and its review is through, so history is never rewritten. Commit messages stay short; the request, decisions and progress live in a git-ignored ledger and in the PR body. The user chooses whether a plan runs in its own worktree or on a branch, its tasks execute one at a time, and once the work is integrated or discarded the local branch and worktree are removed, never a remote branch — parallel sub-agents are reserved for read-only fact-finding.
+- A **trivial** edit runs from `dev-ship`; a **bug** starts in `dev-debug`; a **fast** change goes straight to `dev-implement`; an **explored** one settles its decisions in `dev-explore` first; a **planned** one, past 400 changed lines, adds a spec and a plan, executed by sub-agents one task at a time in slices that ship as chained PRs.
+- Tests come first and are proven: watched fail, regression tests red by reverting the fix.
+- Only what was asked: every new surface justifies itself against a requirement, and `dev-verify` traces every hunk, surface and changed test or check back to the spec or the request.
+- One task, one commit, and history is never rewritten. Decisions live in the PR body, and on the longer lanes in a git-ignored ledger.
+- The work stops only for what the user must answer — their decisions and the facts only they hold — and decides the rest, recording each one.
 
 ## Install
 
@@ -103,8 +88,8 @@ Uninstalling through `curl` needs an internet connection, the same as installing
 
 | What | Where | Git |
 |---|---|---|
-| Spec | `docs/specs/YYYY-MM-DD-<slug>.md` | committed, only when a plan follows |
+| Spec | `docs/specs/YYYY-MM-DD-<slug>.md` | committed, when work enters the *Planned* lane |
 | Plan | `docs/plans/YYYY-MM-DD-<slug>.md` | committed — argues from the spec |
-| Ledger | `.dev-runs/<slug>.md` | git-ignored — the request and decisions of a change that asked or decided anything, the fixes that were tried and failed, and a plan's progress task by task |
+| Ledger | `.dev-runs/<slug>.md` | git-ignored — the request and decisions of an *Explored* or *Planned* change, the fixes that were tried and failed, and a plan's progress task by task |
 
-Whichever skill writes the ledger first — `dev-explore` or `dev-implement` — makes sure `.dev-runs/` is git-ignored before writing it. A convention the target repository already has wins over these defaults.
+Whatever writes the ledger first makes sure `.dev-runs/` is git-ignored before writing it, per the router's *Terms*. A convention the target repository already has wins over these defaults.

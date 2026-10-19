@@ -1,6 +1,6 @@
 # retry-two-readings
 
-Tests: router, *Not Trivial, but Fast*; `dev-implement`, *Read the request for two readings*.
+Tests: router, *Lanes — the first row that fits*; `dev-implement`, *Settle what the request leaves open*.
 
 ## Prompt
 

@@ -1,6 +1,6 @@
 # cache-expiry
 
-Tests: router, rule 4 and *Terms*; `dev-explore`, *Justify every new surface*; `dev-implement`, *Sort every decision the request didn't settle*.
+Tests: router, rule 4 and *Terms*; `dev-explore`, *Justify every new surface*; `dev-implement`, *Settle what the request leaves open*.
 
 ## Prompt
 

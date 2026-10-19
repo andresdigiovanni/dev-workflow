@@ -1,6 +1,6 @@
 # change-pinned-value
 
-Tests: router, *Not Trivial, but Fast*; `dev-implement`, *Build it, task by task*; `dev-verify`, *Gate 2*, reverse trace 2.
+Tests: router, *Lanes — the first row that fits*; `dev-implement`, *Build it, task by task*; `dev-verify`, *Gate 2*, reverse trace 2.
 
 ## Prompt
 

@@ -1,6 +1,6 @@
 ---
 name: dev-debug
-description: Finds the root cause of a bug and the smallest fix that removes it. Use when encountering a bug report, a test that fails unexpectedly or flakes, a crash, an error message, or any behavior that differs from what was expected — before proposing or writing a fix, and when a fix has already been tried and didn't hold. Not for the expected red of a test written first.
+description: Finds the root cause of a bug and the smallest fix that removes it. Use when encountering a bug report, a test that fails unexpectedly or flakes, a crash, an error message, a bug that shipped through a green suite, or any behavior that differs from what was expected — before proposing or writing a fix, and when a fix has already been tried and didn't hold. Not for the expected red of a test written first.
 ---
 
 # Debug
@@ -9,19 +9,19 @@ The fix you can write in thirty seconds is usually a fix to the symptom. This sk
 
 A bug report starts here, not in `dev-explore`: steps 1–3 are the exploration. Once they point to a fix:
 
-- **The fix carries a decision** — a new surface, a behavior change nobody asked for, a mechanism outside the request: ask it in one round, per `dev-implement`, *Sort every decision the request didn't settle*. Load `dev-explore` only when it takes more than one round, or when the fix is *Planned*.
-- **Pick the lane by the size of the fix**, entering at `dev-implement` — or at `dev-explore` when the fix is *Planned* or its decisions take more than one round.
-- **The reproduction test from step 1 is that lane's failing test.** `dev-implement` and `dev-testing` start from it, not from a second one. The lane ends in `dev-verify` and `dev-ship` as usual.
+- **Pick the lane by the fix.** Enter at `dev-implement`, which asks any decision the fix carries — a new surface, a behavior change nobody asked for — in one round (*Settle what the request leaves open*). Enter at `dev-explore` instead when the fix is *Planned* or its decisions take more than one round.
+- **The reproduction test from step 1 is that lane's failing test.** `dev-implement` and `dev-testing` start from it, not from a second one. The lane ends in `dev-verify` and `dev-ship` as usual; a *Planned* one, per *A Planned fix*.
 
 ## 1. Reproduce before anything
 
 No fix before a reliable reproduction. If you cannot make it happen on demand, you cannot know you fixed it — you can only know it stopped happening while you were watching.
 
-Write the reproduction **as a failing test** when you can. It becomes the regression test, and it proves the fix at the moment the fix lands.
+Write the reproduction **as a failing test** when you can. On a bug report it is the change's first edit: branch first, per the router. It becomes the regression test, and it proves the fix at the moment the fix lands.
 
 **Intermittent?** Find what makes it deterministic — an ordering, a timing, a leftover state, a specific input — before anything else. An intermittent bug is a bug you haven't characterized yet.
 
 - **Can't make it happen on demand** from the code, tests and logs you can reach: stop and ask the user for a reproduction or a log (router, rule 3). Don't fix blind.
+- **It reproduces, but the code does what its docs or spec say, or what a test pins that wasn't changed to accept the defect** (step 3), and the report expects something else: it is a change request, not a bug. Report the evidence and ask whether to change the behavior (router, rule 3).
 - **Concurrency:** run the toolchain's race detector if it has one. Force the suspected interleaving with a hook or a barrier, not a sleep. Run the test in a loop: a reproduction that fails 1 run in 20 is proven fixed only by a loop long enough to have caught it.
 
 ## 2. The reported mechanism is a hypothesis; only the symptom is evidence
@@ -40,7 +40,10 @@ Read the code that actually runs — not the code you expect to run. Verify each
 
 Stop when you reach something that, if it had behaved correctly, would have prevented the failure — and that isn't itself caused by something upstream. Fixing above that point is symptom treatment, and it moves the bug rather than removing it.
 
-**Green in tests, broken in reality?** Suspect the tests were taught to agree. Check whether the change that introduced the defect also adjusted a fixture, a helper, or a golden file to accept it, or whether a test asserts the defect as intended behavior. See `dev-testing`, *When tests were taught to agree*.
+**Green in tests, broken in reality?** Suspect the tests were taught to agree:
+
+- Check whether the change that introduced the defect **also changed a fixture, a helper, or a golden file** to accept it. That removes the broken shape from the test surface at the exact moment it becomes broken.
+- Check for a test that **asserts the defect as intended behavior**. Delete it rather than leave a test that pins a bug in place.
 
 ## 4. Rank the fix by what it deletes
 
@@ -58,20 +61,17 @@ Ranks 1 and 2 apply only when the mechanism lies inside what the request covers.
 
 Restoring a guarantee the design already needed is not new state — awaiting the work before closing what it writes to, holding the lock the invariant assumes. That is the localized fix.
 
-## 5. One root, not N patches
+**One root, not N patches.** Two or more failures sharing a root cause get one fix at the root, closing all of them. Before fixing, check whether this failure belongs to a cluster you already know about.
 
-Two or more failures sharing a root cause get **one fix at the root**, closing all of them. N symptoms never justify N patches. Before fixing, check whether this failure belongs to a cluster you already know about.
+## 5. When a fix already failed
 
-## 6. When a fix already failed
-
-A fix that didn't hold — yours, or one the report says was tried — is evidence that its hypothesis was wrong. Don't adjust it: discard the hypothesis and go back to step 3 from the reproduction. Revert a failed attempt before the next one, so two guesses never stack. Before reverting it, append `Tried: <hypothesis> — <what the reproduction showed>` to the ledger (`dev-implement`, *The ledger*): after a compaction, a failed guess is exactly the one that comes back.
+A fix that didn't hold — yours, or one the report says was tried — is evidence that its hypothesis was wrong. Don't adjust it: discard the hypothesis and go back to step 3 from the reproduction. Revert a failed attempt before the next one, so two guesses never stack. Before reverting it, append `Tried: <hypothesis> — <what the reproduction showed>` to the ledger (router, *Terms*): after a compaction, a failed guess is exactly the one that comes back.
 
 After two failed fixes, stop patching. Report what each attempt assumed, what the reproduction showed instead, and what you would check next. A third guess at the same layer usually means the problem is in the design, and that is the user's call.
 
-## 7. Prove it
+## 6. Prove it
 
 - The reproduction test goes red before the fix and green after. If you watched it fail before writing the fix, that was the red. If the test came after the fix, revert the fix and watch it fail, per `dev-testing`, *Regression tests, proven red*.
-- The full suite is green.
 - The original reported symptom is re-tested in the original conditions, not approximated.
 
 ## Common traps
@@ -84,4 +84,7 @@ After two failed fixes, stop patching. Report what each attempt assumed, what th
 | Falling back instead of failing | A default, an empty result or an error rethrown without its cause: the caller gets a plausible wrong answer, and nothing reports it |
 | Adding a retry or a wait | Waiting on a condition is fine; waiting on a duration hides a race |
 | "It works now" after several changes | Undo them one at a time until you know which one mattered |
-| Trusting a fix you never saw fail | See step 7 |
+
+## A Planned fix
+
+The reproduction test goes verbatim into the plan's first task as its Step 1. Before the plan's branch or worktree is created, take it out of the current tree — delete the file if you created it, otherwise undo only your edit — then switch to the default branch and delete the branch step 1 made with `git branch -d`: it has no commits.

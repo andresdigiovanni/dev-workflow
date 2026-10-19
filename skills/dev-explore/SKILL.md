@@ -1,34 +1,13 @@
 ---
 name: dev-explore
-description: Settles the facts and the user's decisions before any code is written. Use when a request is ambiguous, has a design choice with more than one defensible answer, touches code a search doesn't locate, adds new surfaces (endpoint, flag, exported function, config key) that take more than one round of questions, spans more than three commits, or when the user asks for options or trade-offs. Skip when none hold.
+description: Settles the facts and the user's decisions before any code is written. Use when a request is ambiguous, has a design choice with more than one defensible answer, touches code a search doesn't locate, adds new surfaces (endpoint, flag, exported function, config key) that take more than one round of questions, is forecast past 400 changed lines, or when the user asks for options or trade-offs. Skip when none hold.
 ---
 
 # Explore
 
 Turn a vague request into a settled one. The output is shared understanding, not code.
 
-## Skip this skill when all five hold
-
-- The request names what to change.
-- No design decision has more than one defensible answer.
-- A search for what the request names — a file, a symbol, a command, an error message — finds the affected code. Reading that code is `dev-implement`'s job, not exploration.
-- No open new surface appears (router, *Terms*). A surface the request pins down is one the user already decided.
-- The work fits in three commits. Past that, the approach is a decision however clear the request: never skipped on the *Planned* lane.
-
-"It seems simple" is not one of the five. If any one fails, run the skill — unless all that fails is a few open surfaces, dependencies or behaviors and no answer would change the approach. Then run a *Single round* instead.
-
-A bug report goes to `dev-debug` first: its reproduction and root-cause trace are the exploration. Come here only when the fix it finds carries a decision.
-
-## Single round
-
-When the only open items are a few surfaces, new dependencies or observable behaviors, and no answer would change the approach:
-
-1. Skip steps 1–3 and 6.
-2. Ask every open item in one round, in step 4's format. The Context block holds only the facts these questions rest on.
-3. Give each surface step 5's four answers.
-4. Carry on with the answers.
-
-In the fast and bug lanes `dev-implement` runs this round itself (*Sort every decision the request didn't settle*), without loading this skill.
+A bug report goes to `dev-debug` first: its reproduction and root-cause trace are the exploration. Come here only when its fix needs more than one round of decisions, or is *Planned*.
 
 ## 1. Split unknowns into facts and decisions
 
@@ -47,11 +26,20 @@ Give each one a question, not a topic: "Does the auth module validate token expi
 
 ## 3. Check the scope before asking
 
-If the request covers several independent subsystems, say so now, before any round is spent on the whole. Decompose it into sub-projects, name how they relate and the order they get built in, and take the first one through the rest of this flow. Each sub-project goes through this flow on its own.
+If the request covers several independent subsystems, say so now, before any round is spent on the whole. Propose a split into sub-projects, how they relate and the order they get built in, as a question in the first round: the scope is the user's. Then take the first one through the rest of this flow; each sub-project goes through it on its own.
 
-## 4. Ask the decisions in rounds
+## 4. Justify every new surface
 
-**Open the first round with a Context block:** the facts that shape the decisions, one line each, with the path that proves it. A wrong fact caught here costs one line instead of a wrong design.
+A surface is a contract: once something depends on it, taking it back is a breaking change. Agents add them by reflex — an optional flag, a spare field, an endpoint "for later". Each one is a decision for the round, never a fact, and it arrives with these four answers worked out:
+
+- **Requirement** — the line of the request or spec that needs it, quoted, or the requirement that cannot be met without it (a rate limit needs a rejection response). None means it is out of scope: drop it rather than ask, and list it as a follow-up.
+- **Consumer** — who calls it now. A real caller, not "someone might".
+- **Existing home** — could a surface that already exists absorb it? Extending one beats adding a second.
+- **Smallest shape** — the fewest parameters, fields and options that serve that consumer. No knob for a value with one known setting, nothing optional "for the future", private until something outside needs it.
+
+## 5. Ask the decisions in rounds
+
+**Open the first round with a Context block:** the facts that shape the decisions. Both it and each question take the router's question format (rule 3). A wrong fact caught here costs one line instead of a wrong design.
 
 **Ask the whole frontier in one round.** The frontier is every decision whose prerequisites are already settled. Never ask one question at a time. A question whose answer depends on another question in this round belongs to the next round.
 
@@ -62,41 +50,13 @@ If the request covers several independent subsystems, say so now, before any rou
 
 Never settle the approach inside the Context block: a fact line that picks the architecture is a decision taken for the user.
 
-```
-❓ **Q1 — <short title>**: <the question>
-
-- **A — <option>**: <what it costs> / <what it buys>
-- **B — <option>**: <what it costs> / <what it buys>
-
-➡️ <your recommended option and the one reason that decides it>
-
----
-
-❓ **Q2 — <short title>**: …
-```
-
-Every question carries:
-
-- **At least two options.** Without options it is a statement, not a question.
-- **Your recommendation.** Without one you make the user do your thinking.
-- **For each option, what it costs and what it buys** — complexity, time, risk, lines, a new dependency, a breaking change. An option without its cost is a sales pitch.
+**One exception, in the first round only:** when what is unknown is the user's intent — the goal, who it serves — and no option can be defended yet, open with one open question instead. Options offered before you know what they want steer the answer. The rounds after it carry options.
 
 Offer an option only if you would defend it. Don't manufacture three approaches when there is one. A decision with one defensible answer is a fact: it goes in the spec or the ledger, not in a round.
 
-**Before sending a round, put every question that would add a surface through step 5.** One with no requirement to quote is out of scope: drop it and list it as a follow-up; never offer it as an option. That isn't settling a surface for the user — it is not building what wasn't asked (router, rule 4). The follow-up line is how they ask for it if they want it.
-
-**Each round's answers reshape the tree.** Settled decisions unblock the questions that hung off them: recompute the frontier and ask the next round. A sub-agent still running is an unsettled prerequisite. It blocks only the questions downstream of it, not the round.
+**Each round's answers reshape the tree.** Settled decisions unblock the questions that hung off them: recompute the frontier and ask the next round. Send a round only once every fact sub-agent you dispatched has returned (router, rule 1).
 
 The phase ends when the frontier is empty: nothing left silently assumed.
-
-## 5. Justify every new surface
-
-A surface is a contract: once something depends on it, taking it back is a breaking change. Agents add them by reflex — an optional flag, a spare field, an endpoint "for later". Each one is a decision for the round, never a fact, and it arrives with these four answers worked out:
-
-- **Requirement** — the line of the request or spec that needs it, quoted, or the requirement that cannot be met without it (a rate limit needs a rejection response). None means it is out of scope: drop it rather than ask.
-- **Consumer** — who calls it now. A real caller, not "someone might".
-- **Existing home** — could a surface that already exists absorb it? Extending one beats adding a second.
-- **Smallest shape** — the fewest parameters, fields and options that serve that consumer. No knob for a value with one known setting, nothing optional "for the future", private until something outside needs it.
 
 ## 6. Record the outcome
 
@@ -122,9 +82,7 @@ Go straight into `dev-plan`. The user approves spec and plan together at the pla
 
 ### Otherwise (*Explored* lane)
 
-No spec file. Write the settled request, the decisions and any pinned surface to the ledger as `Request:` and `Decision:` lines. That is what `dev-verify` checks against once the conversation is compacted.
-
-The ledger is `.dev-runs/<slug>.md`. If the repo doesn't ignore `.dev-runs/`, add it to the file `git rev-parse --git-path info/exclude` names, so the ledger never lands in a commit.
+No spec file. Write the settled request, the decisions and any pinned surface to the ledger (router, *Terms*) as `Request:` and `Decision:` lines.
 
 Then:
 

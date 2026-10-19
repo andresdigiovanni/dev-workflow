@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Leaves the user's own branch checked out, one commit ahead of main.
+set -euo pipefail
+dir="$1"
+git -C "$dir" checkout -q -b notes
+printf '\nNotes: greet() is used by the CLI.\n' >> "$dir/README.md"
+git -C "$dir" -c user.name=eval -c user.email=eval@example.invalid commit -q -am "note who uses greet"

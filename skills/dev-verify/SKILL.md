@@ -1,15 +1,15 @@
 ---
 name: dev-verify
-description: Proves a change works, does what was asked, and nothing more. Use before committing the last task of a change, before reporting work complete, fixed or passing, before opening a PR or merging, and once after a plan's last task or slice.
+description: Proves a change works, does what was asked, and nothing more. Use before committing the last task of a change, before reporting work complete, fixed or passing, before opening a PR or merging, and once after each slice of a plan. On the Trivial lane, only where dev-ship sends it here.
 ---
 
 # Verify
 
-Three gates, in order; each catches what the previous cannot.
+Two triages, then three gates, in order; each gate catches what the previous cannot.
 
 **What it covers:** the whole branch — `git diff $(git merge-base HEAD <target>)`, committed tasks plus the uncommitted last one, and the untracked files `git status --short` lists. `<target>` is the default branch unless the user named another.
 
-**Where its fixes land:** in the last task's commit. A fix to a task already committed is a commit of its own.
+**Where its fixes land:** per `dev-ship`, *One task, one commit*.
 
 ## First — the instruction-file triage
 
@@ -20,25 +20,21 @@ Before the gates, so they check any update too. Two checks against the repo's ag
 
 **Neither hits:** `Agent file: no update` — the common case, and the search is the inspection. Run it however small the change looks.
 
-**Either hits:** run `dev-agents-md`. An update this change motivated goes in the last task's commit.
+**Either hits:**
+
+- **A line this diff made wrong, or a new fact of a kind the file already lists:** fix it with the smallest accurate edit, checked against the repo. `Agent file: updated`; it lands like any other fix.
+- **A new convention, a rule drawn from a session decision, or drift older than this change:** don't edit. Report a proposal: the instruction, its evidence, what a future agent gains.
+- **The line is still accurate:** `Agent file: no update`.
 
 ## Then — the security triage
 
 Does the diff change how any of these behave: authentication or authorization; input from outside the process reaching a query, a shell, a path, a template or a deserializer; secrets or credentials; cryptography; the permissions of a file or resource? A name that merely appears in the diff is not a hit.
 
-**No hit:** `Security: no hit`. **A hit:** gate 3 runs a fresh reviewer whatever the row, with the security lens.
+**No hit:** `Security: no hit`. **A hit:** gate 3 runs a fresh reviewer whatever the size, with the security lens.
 
 ## Scale to the change
 
-Count the diff, tests excluded, and take the first row that fits. When unsure, take the row below.
-
-| Change | Gate 1 | Gate 2 | Gate 3 | Report |
-|---|---|---|---|---|
-| **Trivial** — the router's *Trivial* lane | Suite and linter, no mutation check. For docs only, none: `Checks: not run — docs only` | The reverse traces only — no behavior to map to tests | None | Compact |
-| **Small** — ≤50 changed lines, no new surface, no plan | In full; the mutation pass covers only the conditions and boundaries the diff touched — none touched, none run | In full | Self-run, per `references/review.md`, *Without sub-agents* | Compact |
-| **Anything else** | In full | In full | Fresh reviewer | Full |
-
-The reverse traces never scale down: an unrequested hunk in a small diff is still unrequested.
+**Small** — ≤50 changed lines, tests excluded, no new surface, no plan: gate 3 is self-run, per `references/review.md`, *Without sub-agents*. Tests are excluded here and included in the lanes' 400: the lanes measure what a reviewer reads, this measures the code that can break. Anything else, or when unsure: a fresh reviewer. Gates 1 and 2 run in full at every size: an unrequested hunk in a small diff is still unrequested.
 
 ## Gate 1 — Evidence
 
@@ -49,23 +45,14 @@ Run each of these and read its output:
 - the linter and formatter the repo uses, the formatter in check mode. Lines it would change that this diff didn't touch are pre-existing, not yours to reformat (router, rule 4);
 - the build, if there is one;
 - the changed behavior once through its real entry point — the command, the request, the page — when the tests reach it only through substitutes and it runs locally in a minute;
-- a mutation check on the new code, per `dev-testing`, *Mutation testing*. Every condition, comparison or boundary the diff adds or changes gets at least one mutant: `Mutants: none` means none survived, never none tried. The pass run while implementing counts for code unchanged since. In delegated mode, check the implementers' `Mutants` lines against the diff. A mutant on concurrent code counts as killed or surviving only after as many runs as the reproduction loop needed.
 
 For each, report the exact command, the exit code, the counts, and the summary and failure lines — not the whole log. A tool the repo doesn't have is reported as `none configured`, not skipped in silence.
-
-| Claim | What proves it | What does not |
-|---|---|---|
-| Tests pass | Suite output, 0 failures, this turn | A previous run; "should pass" |
-| A red test isn't yours | The same failure in the pre-change run | "It's unrelated to my change" |
-| Bug fixed | The original symptom, re-tested | The code changed |
-| Regression test works | Red-green verified by reverting the fix | It passes once |
-| New tests would catch a regression | Surviving mutants on the new code, each explained, per `dev-testing` | Coverage; the suite passing |
 
 ## Gate 2 — Compliance
 
 Tests passing is not the same as building what was asked.
 
-**Re-read the authority**, not your memory of it: the spec; else the ledger's `Request:` and `Decision:` lines; else the request as the user wrote it. For one slice of a sliced plan, only the requirements its tasks cite.
+**Re-read the authority**, not your memory of it: the spec; else the ledger's `Request:` and `Decision:` lines; else the request, the user's answers and the `Decision:` lines in the conversation. For one slice of a plan, only the requirements its tasks cite.
 
 **Make a line-by-line checklist: every requirement → where it is implemented → which test covers it.** A requirement with no implementation, or an implementation with no test, is an open item, not a rounding error. A deliberate divergence from the spec is reported with its reason: recorded is fine, hidden is not.
 
@@ -96,36 +83,21 @@ In delegated mode, fixes from any gate follow `dev-implement`'s `references/dele
 
 **Fixes make gate 1's output stale.** After fixing, run gates 1 and 2 again before reporting. A fix that changed more than its finding named goes back to a fresh reviewer — two review rounds maximum. Findings that survive round two each get a ruling and go under `Open`.
 
-If the runtime has a native code review that runs without your session history, gate 3 can use it instead of a sub-agent.
-
 ## Report
 
+One template for every change. On a *Small* one, `Spec` lists each requirement → its test, `Review` reads `self-run — <findings or none>` unless the security triage sent it to a fresh reviewer, and a line with nothing to report reads `none`.
+
 ```
-Suite:      <command> → <result; pre-existing reds named, with the pre-change run>
-Types/lint/build: <command> → <result>
+Suite:      <command> → <result; pre-existing reds named, with the baseline>
+Types/lint/build: <command> → <result, or none configured>
 Entry point: <command → what it showed, or n/a>
-Mutants:    <survivors on the new code, each explained — or none>
 Spec:       <n> requirements, <n> covered, gaps: <list or none>
 Tests changed: <each existing test or check changed, loosened, skipped, focused or deleted → its requirement — or none>
 Surfaces:   <n> added, all traced | untraced: <list>
 Review:     <n> findings — <n> fixed, <n> recorded, <n> disputed
 Security:   <no hit | hit: what the diff touches → <n> findings>
 Agent file: <no update | updated | proposed: the proposal>
-Decisions:  <what — why — cost if wrong, or none; from the spec and the ledger>
+Decisions:  <what — why — cost if wrong, or none; from the spec, the ledger or the conversation>
 Follow-ups: <what was noticed and deliberately left out of scope — or none>
-Open:       <anything a reader would want to know before merging>
-```
-
-Compact, for the trivial and small rows:
-
-```
-Checks:     <each command gate 1 ran → result, pre-existing reds named; `not run — docs only` for docs>
-Mutants:    <survivors, each explained — or none; small row only>
-Spec:       <each requirement → test; small row only>
-Scope:      every hunk traced, no new surface, existing tests or checks changed: <each → its requirement, or none> | removed: <list>
-Review:     self-run — <findings or none; small row only> | fresh — <findings>, when the security triage hit
-Security:   <no hit | hit: what the diff touches>
-Agent file: <no update | updated | proposed: the proposal>
-Decisions:  <what — why — cost if wrong, or none>
-Follow-ups: <or none>
+Open:       <anything a reader would want to know before merging — or none>
 ```

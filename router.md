@@ -1,61 +1,36 @@
 # Development workflow
 
-For any request that changes repository files. A question, an explanation or a review doesn't enter it; only rules 1 and 2 apply.
+For any request that changes repository files. A question, an explanation or a review follows only rules 1 and 2.
 
-## Pick a lane — the first row that fits
+## Lanes — the first row that fits
 
 | Lane | When | Path |
 |---|---|---|
-| **Trivial** | No logic changes and nothing to decide: a typo, docs, comments, copy, or a config value the request states exactly. See the exclusions below | *Trivial lane*, below. Runs from the router; only steps 5 and 8 load a skill |
-| **Bug** | A bug report, a test failing unexpectedly, behavior that differs from what was expected | `dev-debug` first; it picks the lane the fix enters. Never *Trivial*: a logic fix changes behavior |
-| **Fast** | A clear request, code a search finds, ≤3 commits, and every open behavior, surface or dependency fits in one round of questions with no answer that would change the approach. Most changes | `dev-implement` → `dev-verify` → `dev-ship` |
-| **Explored** | ≤3 commits, and any of: an ambiguous request, a design choice with more than one defensible answer, open surfaces that need more than one round, code a search doesn't find | `dev-explore` → `dev-implement` → `dev-verify` → `dev-ship` |
-| **Planned** | >3 commits | `dev-explore` → `dev-plan` → `dev-implement` → `dev-verify` → `dev-ship`. Always explored: at this size the approach itself is a decision |
+| **Trivial** | No logic and nothing to decide: a typo, docs, comments, copy, a config value the request states exactly | `dev-ship`, *Trivial lane* |
+| **Bug** | A bug report, an unexpected failure, behavior that differs from what was expected | `dev-debug`, which picks the fix's lane |
+| **Fast** | ≤400 changed lines, code a search finds, and everything open fits in one round of questions, none of which changes the approach | `dev-implement` → `dev-verify` → `dev-ship` |
+| **Explored** | ≤400 changed lines, and an ambiguous request, a design choice with two defensible answers, open surfaces that need more than one round, or code a search doesn't find | `dev-explore` → `dev-implement` → `dev-verify` → `dev-ship` |
+| **Planned** | Past 400 changed lines | `dev-explore` → `dev-plan` → `dev-implement` → `dev-verify` → `dev-ship` |
 
-**Not Trivial, but Fast:** a config value that adds a key, a value a test asserts on, or a count or limit with two readings ("retry 3 times": 3 calls or 4?).
+Changed lines include tests. Never *Trivial*: a logic fix, a rename or refactor, a config value that adds a key or that a test asserts on, a count with two readings ("retry 3 times": 3 calls or 4?).
 
-**Commits** count behaviors that could each be tested, reviewed and reverted alone — not files. A rename or refactor breaks callers, so it is *Fast*, not *Trivial*.
+**Say the lane** before starting, in one line with the fact that picked it — `Lane: Fast — one function, the request names it` — and again when a phase shows it no longer fits and you switch. A lane the user names wins.
 
-**Wrong lane?** When a phase shows the lane no longer fits — exploration finds more than 3 commits, a trivial edit needs logic — switch lanes from the phase you are in.
+**Load each skill when its phase starts, and follow it**: run from memory, its gates get dropped. Load `dev-testing` before any test or code, and `dev-debug` on any unexpected behavior.
 
-**Say the lane** before starting — the *Trivial* lane too — and again on a switch: one line with the fact that picked it — `Lane: Fast — one function, the request names it`. A wrong lane is invisible until a phase trips on it; this line lets the user catch it first. A lane the user names wins.
+**Branch before the first edit**, without asking — except where a plan runs, which the user chooses at `dev-plan`, *Handoff*. Already on a branch other than the default: work there when it has no commits ahead of the default branch; with commits ahead, ask whether they belong to this work, and branch from the default branch if they don't. Name it by the repo's convention — its branch names, its contributing guide — else by the work's slug. Never commit to the default branch unless the user says so. Never amend, rebase or force-push, and never skip the repo's hooks or checks — no `--no-verify`, no overriding the hooks path.
 
-**Load each skill when its phase starts, and follow it.** A phase run from memory drops its gates. Also load `dev-testing` before any implementation code, and `dev-debug` on any unexpected behavior.
+## Terms
 
-### Trivial lane
+A **new surface** is anything outside the change will depend on: an exported function or type, an endpoint, a response field or header, a CLI command or flag, a config key, an environment variable, an event, a schema, a file format. A request **pins it down** when it gives the exact shape — name, parameters and types, output fields and types, not just "as JSON". Anything less leaves it **open**.
 
-These steps are `dev-verify`'s *Trivial* row, run inline:
+A **task** is one deliverable — a behavior, a fix, a migration, a rename — that can be tested, reviewed and reverted alone, never a file type. It gets one commit, with its tests, per `dev-ship`.
 
-1. Branch, per *Git*.
-2. Edit.
-3. Run the suite and the linter. Skip both for docs that nothing builds or tests.
-4. Trace every hunk to the request. Revert what traces to nothing.
-5. Search the instruction files for every path, command or name the diff changes. A hit loads `dev-agents-md`.
-6. Commit once.
-7. Report in three lines: `Checks:` each command → result, or `not run — docs only`; `Scope:` every hunk traced, reverted hunks listed; `Agent file:` no update, updated, or the proposal. There is no pre-change run on this lane, so a red test is reported red, not attributed.
-8. Load `dev-ship` to integrate: *Integrating*, then *Cleanup*.
-
-### Terms
-
-A **new surface** is anything outside the change will depend on: an exported function or type, an endpoint, a response field or header, a CLI command or flag, a config key, an environment variable, an event, a schema or a file format.
-
-A request **pins down** a surface when it gives its exact shape: the name, the parameters and their types, and for output its fields and their types — not just "as JSON". Anything less leaves the surface **open**.
+The **ledger** is `.dev-runs/<slug>.md`, kept on *Explored* and *Planned* and from the first fix that didn't hold: one line per fact, appended as it happens and never edited — `Request:` the request as the user wrote it, or as settled once an answer changed the scope; `Decision: <what> — <why> — <cost if wrong>`; `Tried: <hypothesis> — <what the reproduction showed>`. After a compaction it outranks your memory. Before its first write, unless the repo already ignores `.dev-runs/`, add it to the file `git rev-parse --git-path info/exclude` names, and carry over the request, the user's answers and the `Decision:` lines settled so far. Without one, they stay in the conversation, and `dev-verify` reads them there.
 
 ## Four rules that apply everywhere
 
-1. **Evidence before claims.** Nothing passes, works or is done until you ran the command in this turn and read its output. A self-report — yours or a sub-agent's — is a claim, not evidence. A sub-agent you dispatched is yours to collect: never end a turn waiting on one.
-2. **Facts are yours to find, decisions are the user's.** Never ask what the repo, the history or the network can answer. Never decide what the user is entitled to decide.
-3. **Stop only for what the user must answer.** Ask each one with options, their costs and your recommendation:
-   - an open new surface;
-   - a new dependency the request doesn't name;
-   - a fact only the user holds — a reproduction, a log, which feature they mean;
-   - a caller-observable behavior the request leaves open — two readings count;
-   - the go-ahead on spec and plan, or on a restated request when an answer changed the scope;
-   - two failed fixes for one bug;
-   - how to integrate;
-   - where a delegated plan runs.
-
-   Decide everything else and record `Decision: <what> — <why> — <cost if wrong>`. If the cost is something a caller would see, it was a stop: ask.
-4. **Build only what was asked.** Every changed line traces to the request or the spec. No drive-by refactors, reformatting, renames, speculative helpers, options "for later", unrelated fixes, error handling for inputs no caller sends, or comments that narrate the change — list them as follow-ups.
-
-**Git.** Branch first, without asking — except where a delegated plan runs, which the user chooses. Name it by the repo's convention, else by the work's slug. Never commit to the default branch unless the user says so. Stage by path, never `git add -A`: the tree may hold the user's own work. Never amend, rebase or force-push, and never delete a remote branch. Never skip the repo's commit hooks or checks — no `--no-verify`, no overriding the hooks path.
+1. **Evidence before claims.** Nothing passes, works or is done until you ran the command in this turn and read its output. A self-report, yours or a sub-agent's, is a claim. Never end a turn waiting on a sub-agent you dispatched.
+2. **Facts are yours to find, decisions are the user's.** Never ask what the repo, the history or the network can answer.
+3. **Stop only for what the user must answer:** an open new surface; a dependency the request doesn't name; a fact only the user holds — a reproduction, a log, which feature they mean; a caller-observable behavior the request leaves open — two readings count; the go-ahead on a spec and plan, or on a request an answer changed; two failed fixes for one bug; how to integrate; where a plan runs. Open with the facts they rest on, one line each with the path that proves it. Ask each with options, what each costs and buys, and your recommendation — through the host's question tool when it has one, else as `A — <option>: <cost> / <gain>` lines and a closing `➡️ <pick> — <why>`. Decide the rest and record `Decision: <what> — <why> — <cost if wrong>`; a cost a caller would see means it was a stop.
+4. **Build only what was asked.** Every changed line traces to the request or the spec. No drive-by refactors, renames or reformatting, no speculative helpers or options, no unrelated fixes, no handling for inputs no caller sends, no comments that narrate the change — list them as follow-ups.

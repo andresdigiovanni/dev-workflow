@@ -1,6 +1,6 @@
 ---
 name: dev-implement
-description: Writes the code for a change. Use before the first edit to any source or test file, however small the change — a new function, a fix, a flag — when executing an approved plan task by task, and when resuming a plan after a context compaction. Always paired with dev-testing. Not for the Trivial lane: typos, docs, comments, copy.
+description: Writes the code for a change. Use before the first edit to any source or test file, however small the change — a new function, a fix, a flag — when executing an approved plan task by task, and when resuming a plan after a context compaction. Not for the Trivial lane: typos, docs, comments, copy.
 ---
 
 # Implement
@@ -12,18 +12,10 @@ Two modes, one discipline. **Load `dev-testing` before writing any test or code,
 
 ## Before either mode
 
-Branch first, per the router's *Git*.
+Branch first, per the router.
 
 - **Direct mode** — a branch in the current working tree; anything more costs more than the change. If the tree holds uncommitted work that isn't part of this change, leave it alone and stage by path.
-- **Delegated mode** — ask the user once, before the first task, where the plan runs, in the *Single round* format of `dev-explore`:
-  - **A worktree for the whole plan, on its own branch** — recommended: sub-agents and the user never write to the same files. It costs a setup and a cleanup.
-  - **A branch in the current tree** — nothing to set up. It costs the tree: the user can't edit files while the plan runs, and uncommitted work of theirs stays in the way.
-
-  A preference the user already declared in an instruction file settles it without the question. Already inside a linked worktree (`git rev-parse --git-dir` differs from `--git-common-dir`, and `git rev-parse --show-superproject-working-tree` prints nothing)? Work there; don't create another.
-
-  Create a worktree with the host's native worktree mechanism when it has one, else `git worktree add .worktrees/<slug> -b <branch>`. Add `.worktrees/` to the file `git rev-parse --git-path info/exclude` names, so it never lands in a commit.
-
-The branch is named by the repo's convention when it has one — the existing branch names, the contributing guide — else by the work's slug. `dev-ship`, *Cleanup*, removes both once the work is integrated or discarded.
+- **Delegated mode** — where the plan runs, and how its worktree is set up: `references/delegated.md`, *Setup*.
 
 ## Direct mode — no plan
 
@@ -33,68 +25,38 @@ Read the affected code, its callers and its tests. Find how the codebase already
 
 Searches first, whole files only where the change lands.
 
-### 2. Run the suite once, before any edit
+### 2. Run the baseline, before writing any test or code
 
-Run the project's full test command and keep the result. A test that is red now is not yours: the report names it as pre-existing, with this run as the evidence. Without this run, every red test at the end is yours to explain.
+Run the project's full test command and keep the result. A test that is red now is not yours: the report names it as pre-existing, with the baseline as the evidence. Without this run, every red test at the end is yours to explain.
 
 On the *Bug* lane, `dev-debug`'s reproduction test is red in this run by design. It is the task, not a pre-existing failure.
 
-### 3. Read the request for two readings
+### 3. Settle what the request leaves open
 
-Before the first test, write the cases each requested behavior needs (`dev-testing`, *What to cover*). Check that the request, or a convention in the code, fixes the expected result of every one. Typical gaps:
+Before the first test, write the cases each requested behavior needs (`dev-testing`, *What to cover*), and check that the request, or a convention in the code, fixes the expected result of every one. Typical gaps:
 
 - a count — does "retry 3 times" mean 3 calls or 4?
 - what a second call does — does a second discount replace the first or stack on it?
 - an input at the edge of what the change adds — a value exactly at a new limit, an empty list passed to a new parameter.
 
-Only behavior the request adds or alters counts. An edge of existing behavior the change doesn't touch is not open, and asking about it grows the scope.
+Only behavior the request adds or alters counts. An edge of existing behavior the change doesn't touch is not open, and asking about it grows the scope. "The natural reading" is not a settlement: if you can state a second reading a caller would notice, it is open.
 
-"The natural reading" is not a settlement. If you can state a second reading a caller would notice, it is open, however good your argument for the first.
+Then sort every decision the request didn't settle, per router rule 3. A caller-observable one — output, errors, defaults, call counts, what is accepted or rejected — a new surface the request doesn't pin down, or a dependency the repo doesn't use and the request doesn't name is the user's; ask a dependency with its cost and the alternative without it. A new surface goes with its four answers (`dev-explore`, *Justify every new surface*); with no request line to quote, drop it and list it as a follow-up. Anything else — a private name, where a helper lives — you decide and record.
 
-### 4. Sort every decision the request didn't settle
+**Ask everything open in one round, now, before any code** — one stop instead of several — in the router's question format (rule 3). Then carry on with the answers. Don't build the option you expect them to pick while you wait. A question found only mid-change is asked then, on its own.
 
-| The decision | Whose | What to do |
-|---|---|---|
-| Changes what a caller can observe — output, errors, defaults, call counts, what is accepted or rejected | The user's (router, rule 2) | Ask it |
-| Adds a new surface the request doesn't pin down | The user's | Ask it with four answers: the request line that needs it, the caller that uses it now, the existing surface that could absorb it, and its smallest shape. No request line to quote: drop it, list it as a follow-up |
-| Needs a dependency the repo doesn't use and the request doesn't name | The user's (router, rule 3) | Ask it: the dependency, its cost, the alternative without it |
-| Changes nothing observable — a private name, where a helper lives, the order of two statements | Yours | Decide it and record `Decision: <what> — <why> — <cost if wrong>` |
+### 4. Build it, task by task
 
-**The tell:** before writing a `Decision:` line, read its `cost if wrong`. If it names something a caller would see — an extra call, a different result, an error raised or not — and neither the request nor a convention in the code fixes it, the decision isn't yours to record. Ask it.
+Most direct-mode changes are a single task (router, *Terms*). Each task goes test first, per `dev-testing`.
 
-**Ask everything open in one round, now, before any code** — one stop instead of several. Open with the facts the questions rest on, one line each with the path that proves it, then each question in this format:
-
-```
-❓ **Q1 — <short title>**: <the question>
-- **A — <option>**: <what it costs> / <what it buys>
-- **B — <option>**: <what it costs> / <what it buys>
-➡️ <your recommendation and the one reason that decides it>
-```
-
-Then carry on with the answers. Don't build the option you expect them to pick while you wait. A question found only mid-change is asked then, on its own.
-
-### 5. Build it, task by task
-
-A task is what `dev-ship` defines; most direct-mode changes are a single task. Each task goes test first, per `dev-testing`.
+**Forecast the size before the first test.** Past 400 changed lines, tests included, the lane is *Planned*: switch to it, starting at `dev-explore`.
 
 **Changing behavior that existing tests pin?** Edit those tests to the new behavior first and watch them fail; the request is the requirement `dev-verify` traces them to. A new test beside an old one that still asserts the old behavior leaves the suite contradicting itself.
 
-- **Every task but the last** is committed, per `dev-ship`, once its tests and the full suite pass.
-- **The last task** — the only one, in most changes — is committed after `dev-verify`, so its review fixes land in it.
+Commit each task per `dev-ship`, *One task, one commit*: in direct mode only the last one waits for `dev-verify`, which is its review. No sub-agents and no per-task review.
 
-No sub-agents and no per-task review: `dev-verify` is the review.
-
-**Touch only what the request needs.** The unrelated bug, the tempting rename, the file that "could use a cleanup": note it for the report's follow-ups, don't fix it. Noticed is not debugged — `dev-debug` is for unexpected behavior in what you're changing. `dev-verify` traces every changed line back to the request and removes what traces to nothing.
-
-## The fix that shrinks the system
-
-In either mode, when a task turns out to need a fix rather than an addition, it is a bug: follow `dev-debug` and rank the fix by what it deletes. New surface is the last resort, never the first reach.
+**Touch only what the request needs** (router, rule 4): the unrelated bug, the tempting rename, the file that "could use a cleanup" go in the report's follow-ups. Noticed is not debugged — `dev-debug` is for unexpected behavior in what you're changing.
 
 ## The ledger
 
-The ledger is what `dev-verify` checks against once the conversation is compacted.
-
-- **`dev-explore` ran:** the settled request and decisions are already in it. Add every decision you settle along the way.
-- **Fast lane, something was asked or decided:** start it at the first question or decision. It is `.dev-runs/<slug>.md`, with a `Request:` line — the request as the user wrote it — then the answers and the `Decision:` lines. If the repo doesn't ignore `.dev-runs/`, add it to the file `git rev-parse --git-path info/exclude` names.
-- **A fix that didn't hold:** its `Tried:` line, per `dev-debug`, *When a fix already failed*, starts the ledger if nothing else has.
-- **Nothing asked, decided or tried:** no ledger. `dev-verify` reads the request in the conversation.
+Defined in the router, *Terms*. `dev-explore` or `dev-plan`'s switch starts it on *Explored*, `dev-debug` at a fix that didn't hold, and `references/delegated.md`, *Setup*, for a plan. When there is one, add every decision you settle to it.

@@ -49,7 +49,7 @@ A skill competes for the same context the actual work needs. A rule stated once 
 
 An instruction lands better with the failure it prevents attached. `Watch the test fail — if you did not, you do not know what it tests` works; `Always follow TDD` does not. One sentence of why, not a paragraph of insistence.
 
-When a rule gets bypassed in practice, the fix is usually a **verifiable skip criterion**, not louder wording. "Skip if the change is simple" is a judgment call and will be abused. "Skip at three commits or fewer" is checkable.
+When a rule gets bypassed in practice, the fix is usually a **verifiable skip criterion**, not louder wording. "Skip if the change is simple" is a judgment call and will be abused. "Skip at 400 changed lines or fewer" is checkable.
 
 No dates, no "currently", no version-of-the-month: a skill outlives them, and a stale fact reads as a rule.
 
@@ -57,7 +57,7 @@ No dates, no "currently", no version-of-the-month: a skill outlives them, and a 
 
 Refer to a sibling skill by its bare name — `dev-testing`, not a namespaced or prefixed form. Namespaces differ per agent; bare names survive a rename of the set. Point at a section by its heading in italics — `dev-testing`, *Regression tests, proven red* — and when you rename a heading, search the set for it.
 
-One term per concept, across the whole set. *New surface*, *pins down* and *open* are defined once in the router's *Terms*, *task* in `dev-ship`, the `Interfaces` block in `dev-plan`; a synonym reads as a second concept — "exported interface" for "exported function or type" is one.
+One term per concept, across the whole set. *New surface*, *pins down*, *open*, *task* and *ledger* are defined once in the router's *Terms*, and the `Interfaces` block once in `dev-plan`; a synonym reads as a second concept — "exported interface" for "exported function or type" is one.
 
 ## Check that it fires
 
