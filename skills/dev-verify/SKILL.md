@@ -73,7 +73,7 @@ Unrequested contracts are the scope creep tests never catch, because the tests w
 
 ## Gate 3 — Fresh review
 
-At the scale that calls for it, dispatch **one** reviewer sub-agent over the whole-branch diff, or one slice's diff against the slice before it.
+At the scale that calls for it, dispatch **one** reviewer sub-agent over the whole-branch diff, or one slice's diff from the previous slice's `verified` sha.
 
 **Read `references/review.md` before dispatching, and again before ruling on what comes back**: the brief, the severity scale, the security lens, and how a disputed finding is settled. The reviewer gets **none of your session history**.
 

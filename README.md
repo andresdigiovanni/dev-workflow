@@ -35,7 +35,7 @@ Around that path:
 
 `router.md` is the authority: the five lanes and when each fits, branching, the terms the skills share, the four rules that hold everywhere — including the only things the work stops to ask. The installer puts it in the agent's instruction file. In short:
 
-- A **trivial** edit runs from `dev-ship`; a **bug** starts in `dev-debug`; a **fast** change goes straight to `dev-implement`; an **explored** one settles its decisions in `dev-explore` first; a **planned** one, past 400 changed lines, adds a spec and a plan, executed by sub-agents one task at a time in slices that ship as chained PRs.
+- A **trivial** edit runs from `dev-ship`; a **bug** starts in `dev-debug`; a **fast** change goes straight to `dev-implement`; an **explored** one settles its decisions in `dev-explore` first; a **planned** one, past 400 changed lines, adds a spec and a plan, executed by sub-agents one task at a time in slices verified one by one on a single branch that ships as one PR.
 - Tests come first and are proven: watched fail, regression tests red by reverting the fix.
 - Only what was asked: every new surface justifies itself against a requirement, and `dev-verify` traces every hunk, surface and changed test or check back to the spec or the request.
 - One task, one commit, and history is never rewritten. Decisions live in the PR body, and on the longer lanes in a git-ignored ledger.

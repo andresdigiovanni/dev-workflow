@@ -55,10 +55,9 @@ Task N: review — <n> critical or important, <m> minor
 Task N: fix round <k> — <model> — <resumed | fresh>
 Task N: ruling — <finding> — <ruling> — <why>
 Task N: complete — <sha>
-Slice K: branch — <branch>
 Plan: baseline — <command> → <result>
 Plan: fix — <finding> — <sha>
-Slice K: verified — <branch>
+Slice K: verified — <sha>
 Plan: verified — <branch>
 Decision: <what> — <why> — <cost if wrong>
 Tried: <hypothesis> — <what the reproduction showed>
@@ -139,14 +138,13 @@ Never stop between tasks to check in: the plan's go-ahead covered them. **A bloc
 
 ## Slices
 
-Every plan is cut into slices. Slice 1 runs on the plan's branch, the one the ledger's header names. Each next slice gets its own branch, created from the previous slice's branch in the same tree and logged `Slice K: branch — <branch>`. No stop between slices: the plan's go-ahead covered them.
+Every plan is cut into slices, and every slice runs on the plan's branch, the one the ledger's header names: a slice is a verification checkpoint, not a branch. Create no branch per slice. No stop between slices: the plan's go-ahead covered them.
 
-1. After a slice's last task is `complete`, run `dev-verify` on that slice — its diff against the branch it was cut from. Land its fixes on that branch and append `Slice K: verified — <branch>`.
-2. Branch the next slice from it.
-3. When the last slice is verified, run gate 2 of `dev-verify` once more, against the whole spec, over the whole stack — a requirement split across slices is checked nowhere else — and append `Plan: verified — <branch>`. The last slice's verification is the pre-PR `dev-verify`; don't run it twice.
-4. `dev-ship` integrates the stack.
+1. After a slice's last task is `complete`, run `dev-verify` on that slice — its diff from where it started: the previous slice's `verified` sha, or the merge-base with the target for Slice 1. Land its fixes on the plan's branch and append `Slice K: verified — <sha>`, the commit the next slice starts from.
+2. When the last slice is verified, run gate 2 of `dev-verify` once more, against the whole spec, over the whole branch — a requirement split across slices is checked nowhere else — and append `Plan: verified — <branch>`. The last slice's verification is the pre-PR `dev-verify`; don't run it twice.
+3. `dev-ship` integrates the branch.
 
-Resuming: a slice whose tasks are all `complete` but that has no `verified` line gets verified before anything else; every slice verified and no `Plan: verified` line means step 3 hasn't run.
+Resuming: a slice whose tasks are all `complete` but that has no `verified` line gets verified before anything else; every slice verified and no `Plan: verified` line means step 2 hasn't run.
 
 ## Model selection
 

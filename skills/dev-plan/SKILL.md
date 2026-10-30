@@ -33,7 +33,7 @@ Before defining any task, list what gets created and modified, and what each fil
 - One clear responsibility per file. Files that change together live together: split by responsibility, not by technical layer.
 - In an existing codebase, follow its patterns. Don't restructure unilaterally. Splitting a file you're already modifying, and that has grown unwieldy, is fair.
 
-**Then forecast the size**, tests included. Past 400 changed lines review quality drops off a cliff, so every plan is cut into slices of at most 400 that each ship as their own chained PR, per `dev-ship`. Mark where each slice starts with a `## Slice K: <name>` heading above its first task. A forecast of 400 or fewer: say the switch to *Explored*, with the spec as its authority — ask for the go-ahead on the spec alone, commit it as the first commit on a branch in the current tree, start the ledger, and build it in `dev-implement`'s direct mode.
+**Then forecast the size**, tests included. Past 400 changed lines review quality drops off a cliff, so every plan is cut into slices of at most 400, each verified before the next starts; the whole plan runs on one branch and ships as one PR, per `dev-ship`. Mark where each slice starts with a `## Slice K: <name>` heading above its first task. A forecast of 400 or fewer: say the switch to *Explored*, with the spec as its authority — ask for the go-ahead on the spec alone, commit it as the first commit on a branch in the current tree, start the ledger, and build it in `dev-implement`'s direct mode.
 
 ## Task structure
 

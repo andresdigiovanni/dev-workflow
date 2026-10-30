@@ -41,7 +41,7 @@ Stage by path, never `git add -A` or `git commit -a`: the tree may hold work tha
 
 Never merge into the default branch without the user's explicit say-so. When the work is done and `dev-verify` is clean — or, on the *Trivial* lane, its steps are — present the options with your recommendation and do the one chosen:
 
-- **Open a PR** — the default when anyone else will read this. A plan opens one PR per slice, each based on the slice before it.
+- **Open a PR** — the default when anyone else will read this. A plan opens one PR for its whole branch.
 - **Merge directly** — only with explicit say-so. Fast-forward the target to its remote, merge, then run the full suite and gate 1's other checks on the merged result before deleting anything. Push the merged target only if the user said to push. Red: stop, keep the branch and worktree, and report it; nothing has been pushed.
 - **Keep the branch** — the work continues.
 - **Discard** — the experiment answered its question.
@@ -70,7 +70,6 @@ Once the work is merged or discarded, remove what the workflow created: the work
 | Discarded | `git branch -D`, only after the user confirms the discard | remove |
 
 - **Run `git branch -d` first, always. `-D` needs the user's answer to a question you asked** — "finish up" or "it's merged" is not that answer. After a squash or rebase merge git sees the branch's commits as unmerged, so `-d` refuses although the work landed. Then stop: name the merged PR, say git sees unmerged commits, and ask whether to force-delete. A refusal you override is the only way this cleanup destroys work.
-- **A plan** deletes its branches only once every slice is integrated.
 - **Never touch a remote branch** — no `git push --delete`, whatever the outcome.
 - **Remove a worktree with `git worktree remove <path>`, never `--force`.** If git refuses, the worktree holds files that exist nowhere else: show `git status --short` there and ask.
 - **Only what the workflow created:** a branch it made, and a worktree the ledger's header marks `created` — read it before removing anything. The default branch, anything it adopted, and every other branch or worktree are not yours. With no ledger header — direct mode or the Trivial lane — a branch is yours only if this conversation created it; for any other, ask.
