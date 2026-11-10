@@ -86,6 +86,8 @@ Expected: PASS, suite green
 
 **A wide mechanical change** — a rename or a retype that breaks many call sites at once — can't land as one green task. Sequence it in tasks that are each green: *expand*, the new form beside the old; *migrate* the callers in batches, one task per batch; *contract*, removing the old form once nothing uses it.
 
+**A schema or data migration** runs against code already deployed, so every task leaves the old code working on the new schema: *expand* — the new column or table, nullable or defaulted, written beside the old; *backfill* in batches a rerun can resume; switch the reads. Each migration task ships its down migration and a test that runs it up, down and up again, unless the repo's migrations are forward-only. The *contract* — a drop, a narrowing, anything that destroys data — waits for a later change, once no deployed code reads the old form: list it in the spec's out-of-scope as a follow-up.
+
 **The `Interfaces` block is the load-bearing part.** An implementer sees only their own task, so this block is the only way they learn the names and types their neighbors use. Tasks sent to sub-agents without it produce code that doesn't connect.
 
 **`Mirror` carries the local pattern.** The implementer doesn't know how this codebase reports errors or names its tests, and code that ignores that ships as a second way of doing the same thing. Name code that exists; when nothing comparable does, say so — never invent a pattern.

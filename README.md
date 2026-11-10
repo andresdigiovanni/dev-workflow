@@ -1,6 +1,6 @@
 # dev-workflow
 
-A development workflow as eight portable skills: five phases plus three support skills. Every phase that can be skipped carries a written criterion for when.
+A development workflow as seven portable skills: five phases plus two support skills. Every phase that can be skipped carries a written criterion for when.
 
 ## Layout
 
@@ -9,6 +9,8 @@ dev-workflow/
 ├── router.md          # the router: lanes, branching, terms, four global rules
 ├── install.sh         # installs the skills and the router block
 ├── README.md
+├── AGENTS.md          # conventions and checks for editing this set — not installed
+├── CLAUDE.md          # imports AGENTS.md, which Claude Code doesn't read on its own
 ├── evals/             scenarios that check the skills — not installed
 └── skills/
     ├── dev-explore/       analysis — facts in parallel, decisions in rounds
@@ -17,8 +19,7 @@ dev-workflow/
     ├── dev-verify/        evidence → spec compliance → fresh review
     ├── dev-testing/       the test discipline
     ├── dev-debug/         reproduce → root cause → the fix that deletes
-    ├── dev-ship/          Trivial lane, one commit per task, integration
-    └── dev-skills/        maintain this set
+    └── dev-ship/          Trivial lane, one commit per task, integration
 ```
 
 One `SKILL.md` per skill, with four reference files read only when needed: `dev-implement/references/delegated.md`, the plan-execution mode, read only when there is a plan, so small changes don't load it; `dev-verify/references/review.md`, the fresh reviewer's brief and how its findings are ruled on, read only when a review is dispatched; `dev-plan/references/builder-check.md`, the fresh read of a plan by someone who can't ask, read once the plan's self-review is done; and `dev-testing/references/property-based.md`, read only once a property test is worth writing.
@@ -31,7 +32,7 @@ Around that path:
 
 - `dev-testing` is loaded before any test or code is written, in every lane that writes code.
 - Unexpected behavior in any phase goes to `dev-debug`; a phase that shows the lane no longer fits switches lanes from where it is.
-- `dev-verify` checks every change against the repo's agent instruction file and updates it when the change made it wrong; `dev-skills` runs when editing this skill set.
+- `dev-verify` checks every change against the repo's agent instruction file and updates it when the change made it wrong; editing this skill set follows this repository's `AGENTS.md`.
 
 `router.md` is the authority: the five lanes and when each fits, branching, the terms the skills share, the four rules that hold everywhere — including the only things the work stops to ask. The installer puts it in the agent's instruction file. In short:
 

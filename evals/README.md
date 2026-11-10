@@ -1,6 +1,6 @@
 # evals
 
-Scenarios that check the skills, not the code: each one is a small repository with a trap in it, a prompt, and what the agent must and must not do. `dev-skills`, *Check that it fires*, says to run a scenario before and after every edit that changes behavior; this folder keeps those scenarios so they can be run again — after an edit to another skill, or on a new model.
+Scenarios that check the skills, not the code: each one is a small repository with a trap in it, a prompt, and what the agent must and must not do. `AGENTS.md`, *Check that it fires*, says to run a scenario before and after every edit that changes behavior; this folder keeps those scenarios so they can be run again — after an edit to another skill, or on a new model.
 
 Nothing here is installed; `install.sh` copies only `skills/` and the router.
 

@@ -53,6 +53,8 @@ Most direct-mode changes are a single task (router, *Terms*). Each task goes tes
 
 **Changing behavior that existing tests pin?** Edit those tests to the new behavior first and watch them fail; the request is the requirement `dev-verify` traces them to. A new test beside an old one that still asserts the old behavior leaves the suite contradicting itself.
 
+**A schema or data migration?** Code already deployed reads the schema you change: sequence it per `dev-plan`, *Task structure* — expand, backfill and switch the reads now, with a down migration unless the repo's migrations are forward-only, and leave the contract step, which drops the old form, to a later change listed under follow-ups. A request for the drop now is asked before it's built: deployed code reads the old form until this change is released.
+
 Commit each task per `dev-ship`, *One task, one commit*: in direct mode only the last one waits for `dev-verify`, which is its review. No sub-agents and no per-task review.
 
 **Touch only what the request needs** (router, rule 4): the unrelated bug, the tempting rename, the file that "could use a cleanup" go in the report's follow-ups. Noticed is not debugged — `dev-debug` is for unexpected behavior in what you're changing.

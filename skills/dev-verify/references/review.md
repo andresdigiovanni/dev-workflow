@@ -7,6 +7,7 @@ Read from `dev-verify`, *Gate 3 — Fresh review*, before dispatching the review
 - Severity
 - The security lens
 - Besides the findings
+- A review that came back empty
 - A finding you dispute
 - Without sub-agents
 
@@ -42,7 +43,7 @@ Give it these rules as written:
 - **The description and any implementer's report are claims.** Check them against the diff. A rationale they give never lowers a finding's severity.
 - **Never quote a secret** in a finding: write `<REDACTED>`.
 - **The spec's silence about an input is not permission for it to fail.** Grade such a finding by what the caller gets.
-- **Zero findings is a valid review.** A finding made up to have something to report is the commonest reviewer failure, and each one costs a fix round.
+- **Zero findings is a valid review** — say so with the line `No findings`. A finding made up to have something to report is the commonest reviewer failure, and each one costs a fix round.
 - **Skip these** unless the spec or a repo convention makes them matter: a literal that is a well-known constant, such as a status code or a port; a missing doc comment; a null check after a guard that already excludes null; a loop over a collection whose size the code fixes; a call left unawaited on purpose; a long function that is one exhaustive switch; anything the formatter or linter owns.
 
 **Never pre-judge.** The brief tells the reviewer nothing to ignore, no severity cap, and not that the plan or you chose something: the skip list above is the only exclusion. A finding you expect to be wrong is settled after it comes back, per *A finding you dispute*.
@@ -75,6 +76,10 @@ Ask the reviewer for two lists after its findings:
 - **Declined to judge** — behaviors it considered and set aside as outside the spec, one line each with the reason. Rule on each: a finding, or a `Decision:` line with its cost if wrong, which goes under the report's `Decisions`. Nothing it set aside is dropped silently.
 
 When no request, spec or codebase convention fixes what an input the spec is silent on should give, the fix is a question to the user, not handling you invent (`dev-testing`, *What to cover*).
+
+## A review that came back empty
+
+A reviewer that failed, timed out, or returned neither findings nor the line `No findings` did not review: that is not a clean result. Dispatch it once more with the same brief. Empty again: run the review yourself per *Without sub-agents*, and record that the fresh review didn't run — in the report's `Review` line, or for a plan's task on its `Task N: review` ledger line.
 
 ## A finding you dispute
 
