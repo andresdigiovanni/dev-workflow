@@ -181,6 +181,20 @@ for d in "$SKILLS_SRC"/*/; do
 done
 [ "${#SKILL_NAMES[@]}" -gt 0 ] || die "no skills found in ${SKILLS_SRC}"
 
+# Skills an earlier version shipped and this one does not. Installing,
+# updating or uninstalling removes one that is found and is ours.
+RETIRED_SKILLS=(dev-verify)
+
+# False when the source being installed still ships $1, as an older ref
+# does: that source installs the skill, so nothing retires it.
+is_retired() {
+  local name
+  for name in "${SKILL_NAMES[@]}"; do
+    [ "$name" = "$1" ] && return 1
+  done
+  return 0
+}
+
 # ---------------------------------------------------------------------------
 # Reading from the terminal even when stdin is a pipe
 #
@@ -509,13 +523,27 @@ skills_present() {
   echo "$n"
 }
 
+# The retired skills still in $1 that are ours, separated by spaces.
+retired_present() {
+  local found="" name
+  for name in "${RETIRED_SKILLS[@]}"; do
+    [ -e "$1/$name" ] && is_retired "$name" && is_ours "$1/$name" "$name" && found="${found:+$found }$name"
+  done
+  echo "$found"
+}
+
 skills_action() {
-  local n
+  local n retired action
   n="$(skills_present "$1")"
+  retired="$(retired_present "$1")"
   if [ "$MODE" = install ]; then
-    if [ "$n" -gt 0 ]; then echo "update ${#SKILL_NAMES[@]} skills"; else echo "install ${#SKILL_NAMES[@]} skills"; fi
+    if [ "$n" -gt 0 ]; then action="update ${#SKILL_NAMES[@]} skills"; else action="install ${#SKILL_NAMES[@]} skills"; fi
+    [ -n "$retired" ] && action="$action, remove retired $retired"
+    echo "$action"
   else
-    if [ "$n" -gt 0 ]; then echo "remove $n skills"; else echo "nothing to remove"; fi
+    if [ "$n" -gt 0 ]; then action="remove $n skills"; else action=""; fi
+    [ -n "$retired" ] && action="${action:+$action, }remove retired $retired"
+    echo "${action:-nothing to remove}"
   fi
 }
 
@@ -568,7 +596,8 @@ find_installs() {
   for scope in global project; do
     [ "$scope" = project ] && same_dir "$PROJECT_DIR" "$HOME" && continue
     for agent in "${AGENT_IDS[@]}"; do
-      if [ "$(skills_present "$(skills_dir_for "$agent" "$scope")")" -gt 0 ]; then
+      if [ "$(skills_present "$(skills_dir_for "$agent" "$scope")")" -gt 0 ] \
+          || [ -n "$(retired_present "$(skills_dir_for "$agent" "$scope")")" ]; then
         FOUND+=("$agent:$scope")
       fi
     done
@@ -688,6 +717,9 @@ if [ "$MODE" = "install" ]; then
     for name in "${SKILL_NAMES[@]}"; do
       install_skill "$name" "$target_skills_dir"
     done
+    for name in "${RETIRED_SKILLS[@]}"; do
+      if is_retired "$name"; then remove_skill "$name" "$target_skills_dir"; fi
+    done
     ok "${#SKILL_NAMES[@]} skills → $target_skills_dir"
 
     instr_file="$(instruction_file_for "$agent" "$scope")"
@@ -714,6 +746,9 @@ else
     target_skills_dir="$(skills_dir_for "$agent" "$scope")"
     for name in "${SKILL_NAMES[@]}"; do
       remove_skill "$name" "$target_skills_dir"
+    done
+    for name in "${RETIRED_SKILLS[@]}"; do
+      if is_retired "$name"; then remove_skill "$name" "$target_skills_dir"; fi
     done
     rmdir "$target_skills_dir" 2>/dev/null || true
     [ "$scope" = project ] && { rmdir "$(dirname "$target_skills_dir")" 2>/dev/null || true; }

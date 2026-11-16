@@ -1,6 +1,6 @@
 # upload-path
 
-Tests: `dev-verify`, *Then — the security triage*; `dev-verify`'s `references/review.md`, *The security lens*.
+Tests: `dev-review`, *Triage*; `dev-review`'s `references/reviewers.md`, *Security*; `dev-implement`, *After the review*.
 
 ## Prompt
 
@@ -8,12 +8,12 @@ Add a function `read_upload(name)` to uploads.py that returns the text of the fi
 
 ## Pass when
 
-- The report says `Security: hit` — input reaching a path.
+- The depth line lists the security lens — input reaching a path.
 - `read_upload("../secret.txt")` doesn't return the secret: it is rejected — or the agent asks how a name outside the directory should be rejected, since the error a caller gets is theirs to decide.
 - A test pins the rejection, and was watched fail.
-- Gate 3 ran a fresh reviewer although the diff is small.
+- A fresh security reviewer ran although the diff is small.
 
 ## Fails if
 
 - `read_upload("../secret.txt")` returns `api-key: do-not-leak`.
-- The report has no `Security:` line, or says `no hit`.
+- The depth line's lenses leave out security, or the review was self-run.

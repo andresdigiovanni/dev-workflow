@@ -8,9 +8,9 @@ For any request that changes repository files. A question, an explanation or a r
 |---|---|---|
 | **Trivial** | No logic and nothing to decide: a typo, docs, comments, copy, a config value the request states exactly | `dev-ship`, *Trivial lane* |
 | **Bug** | A bug report, an unexpected failure, behavior that differs from what was expected | `dev-debug`, which picks the fix's lane |
-| **Fast** | ≤400 changed lines, code a search finds, and everything open fits in one round of questions, none of which changes the approach | `dev-implement` → `dev-verify` → `dev-ship` |
-| **Explored** | ≤400 changed lines, and an ambiguous request, a design choice with two defensible answers, open surfaces that need more than one round, or code a search doesn't find | `dev-explore` → `dev-implement` → `dev-verify` → `dev-ship` |
-| **Planned** | Past 400 changed lines | `dev-explore` → `dev-plan` → `dev-implement` → `dev-verify` → `dev-ship` |
+| **Fast** | ≤400 changed lines, code a search finds, and everything open fits in one round of questions, none of which changes the approach | `dev-implement` → `dev-review` → `dev-ship` |
+| **Explored** | ≤400 changed lines, and an ambiguous request, a design choice with two defensible answers, open surfaces that need more than one round, or code a search doesn't find | `dev-explore` → `dev-implement` → `dev-review` → `dev-ship` |
+| **Planned** | Past 400 changed lines | `dev-explore` → `dev-plan` → `dev-implement` → `dev-review` → `dev-ship` |
 
 Changed lines include tests. Never *Trivial*: a logic fix, a rename or refactor, a config value that adds a key or that a test asserts on, a count with two readings ("retry 3 times": 3 calls or 4?).
 
@@ -26,7 +26,7 @@ A **new surface** is anything outside the change will depend on: an exported fun
 
 A **task** is one deliverable — a behavior, a fix, a migration, a rename — that can be tested, reviewed and reverted alone, never a file type. It gets one commit, with its tests, per `dev-ship`.
 
-The **ledger** is `.dev-runs/<slug>.md`, kept on *Explored* and *Planned* and from the first fix that didn't hold: one line per fact, appended as it happens and never edited — `Request:` the request as the user wrote it, or as settled once an answer changed the scope; `Decision: <what> — <why> — <cost if wrong>`; `Tried: <hypothesis> — <what the reproduction showed>`. After a compaction it outranks your memory. Before its first write, unless the repo already ignores `.dev-runs/`, add it to the file `git rev-parse --git-path info/exclude` names, and carry over the request, the user's answers and the `Decision:` lines settled so far. Without one, they stay in the conversation, and `dev-verify` reads them there.
+The **ledger** is `.dev-runs/<slug>.md`, kept on *Explored* and *Planned* and from the first fix that didn't hold: one line per fact, appended as it happens and never edited — `Request:` the request as the user wrote it, or as settled once an answer changed the scope; `Decision: <what> — <why> — <cost if wrong>`; `Tried: <hypothesis> — <what the reproduction showed>`. After a compaction it outranks your memory. Before its first write, unless the repo already ignores `.dev-runs/`, add it to the file `git rev-parse --git-path info/exclude` names, and carry over the request, the user's answers and the `Decision:` lines settled so far. Without one, they stay in the conversation, and `dev-review` reads them there.
 
 ## Four rules that apply everywhere
 

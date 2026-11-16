@@ -1,6 +1,6 @@
 # bent-check
 
-Tests: `dev-verify`, *Gate 2*, reverse trace 2 — a check bent to get green; router, rule 4.
+Tests: `dev-review`'s `references/reviewers.md`, *Tests* — a check loosened to get green; router, rule 4.
 
 ## Prompt
 

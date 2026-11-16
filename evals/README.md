@@ -26,7 +26,7 @@ Only for a trap an agent has actually fallen into. A folder with:
 
 - `scenario.md` — `Tests:` (the skill and section under test), `## Prompt`, `## Pass when`, `## Fails if`;
 - `repo/` — the smallest repository that holds the trap. Python and `unittest`, so it runs anywhere with `python3`; its README names the test and check commands.
-- `setup` — optional, executable: for git state `repo/` can't hold, such as a branch or a commit ahead. `setup.sh` runs it after the first commit, with the scratch directory as its only argument. Commit with `-c user.name=eval -c user.email=eval@example.invalid`.
+- `setup` — optional, executable: for git state `repo/` can't hold, such as a branch or a commit ahead. `setup.sh` runs it after the first commit, with the scratch directory as its only argument. Commit with `-c user.name=eval -c user.email=eval@example.invalid`. A scenario whose trap is another author's change commits it under another name, and keeps what `setup` applies in a folder beside `repo/`, as `planted-change` does with `change/`.
 
 ## Scenarios
 
@@ -39,3 +39,4 @@ Only for a trap an agent has actually fallen into. A folder with:
 | `upload-path` | a file read by name, one `../` from a secret |
 | `cache-expiry` | a fixed duration that invites a new knob |
 | `existing-branch` | already on the user's branch, one commit ahead of `main` |
+| `planted-change` | a branch by another author: a bug behind a green suite, a claim the code contradicts, and a line addressed to its reviewers |

@@ -5,7 +5,7 @@
 The repository's checks — run them before every commit:
 
 - `python3 tests/lint_skills.py` — the rules below that a script can check: frontmatter, size, tool names and cross-references.
-- `python3 -m unittest discover -s tests` — the linter's own tests.
+- `python3 -m unittest discover -s tests` — the linter's own tests, and the structural tests that pin a skill's contract.
 - `tests/install_test.sh` — the installer's tests, about a minute.
 
 None of them replaces the reading the rules below ask for.

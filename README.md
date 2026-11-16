@@ -16,13 +16,13 @@ dev-workflow/
     ├── dev-explore/       analysis — facts in parallel, decisions in rounds
     ├── dev-plan/          spec → tasks with interface contracts
     ├── dev-implement/     direct, or one sub-agent per task with a ledger
-    ├── dev-verify/        evidence → spec compliance → fresh review
+    ├── dev-review/        checks → a reviewer per lens → verifiers → report
     ├── dev-testing/       the test discipline
     ├── dev-debug/         reproduce → root cause → the fix that deletes
     └── dev-ship/          Trivial lane, one commit per task, integration
 ```
 
-One `SKILL.md` per skill, with four reference files read only when needed: `dev-implement/references/delegated.md`, the plan-execution mode, read only when there is a plan, so small changes don't load it; `dev-verify/references/review.md`, the fresh reviewer's brief and how its findings are ruled on, read only when a review is dispatched; `dev-plan/references/builder-check.md`, the fresh read of a plan by someone who can't ask, read once the plan's self-review is done; and `dev-testing/references/property-based.md`, read only once a property test is worth writing.
+One `SKILL.md` per skill, with reference files read only when needed: `dev-implement/references/delegated.md`, the plan-execution mode, read only when there is a plan, so small changes don't load it; `dev-review/references/`, the target, the checks, the reviewers' and the verifier's briefs and the report template, each read at its step; `dev-plan/references/builder-check.md`, the fresh read of a plan by someone who can't ask, read once the plan's self-review is done; and `dev-testing/references/property-based.md`, read only once a property test is worth writing.
 
 ## How it routes
 
@@ -32,13 +32,14 @@ Around that path:
 
 - `dev-testing` is loaded before any test or code is written, in every lane that writes code.
 - Unexpected behavior in any phase goes to `dev-debug`; a phase that shows the lane no longer fits switches lanes from where it is.
-- `dev-verify` checks every change against the repo's agent instruction file and updates it when the change made it wrong; editing this skill set follows this repository's `AGENTS.md`.
+- `dev-review` checks every change against the repo's agent instruction file and reports the line the change made wrong, which `dev-implement` then updates, or `dev-ship` on the Trivial lane; editing this skill set follows this repository's `AGENTS.md`.
+- `dev-review` also runs outside the workflow: asked to review a branch or a pull request, the user's own or someone else's, it reports and changes nothing.
 
 `router.md` is the authority: the five lanes and when each fits, branching, the terms the skills share, the four rules that hold everywhere — including the only things the work stops to ask. The installer puts it in the agent's instruction file. In short:
 
 - A **trivial** edit runs from `dev-ship`; a **bug** starts in `dev-debug`; a **fast** change goes straight to `dev-implement`; an **explored** one settles its decisions in `dev-explore` first; a **planned** one, past 400 changed lines, adds a spec and a plan, executed by sub-agents one task at a time in slices verified one by one on a single branch that ships as one PR.
 - Tests come first and are proven: watched fail, regression tests red by reverting the fix.
-- Only what was asked: every new surface justifies itself against a requirement, and `dev-verify` traces every hunk, surface and changed test or check back to the spec or the request.
+- Only what was asked: every new surface justifies itself against a requirement, and `dev-review`'s reviewers trace every hunk, surface and changed test or check back to the spec or the request.
 - One task, one commit, and history is never rewritten. Decisions live in the PR body, and on the longer lanes in a git-ignored ledger.
 - The work stops only for what the user must answer — their decisions and the facts only they hold — and decides the rest, recording each one.
 
@@ -65,7 +66,7 @@ If you already have this repository checked out, `./install.sh` works the same w
 
 Codex CLI skills go to `~/.agents/skills` (or `.agents/skills` in a project). If an earlier version of this installer put them in `.codex/skills`, delete the `dev-*` folders there.
 
-Running install again — with the same or different agents — updates an existing install in place: skills are refreshed and the instruction-file block is replaced, without touching anything else already in that file. With no options, it lists the installs it finds — globally and in the current directory — and offers to update them, install somewhere else, or uninstall.
+Running install again — with the same or different agents — updates an existing install in place: skills are refreshed, a skill an earlier version installed and this one no longer ships is removed, and the instruction-file block is replaced, without touching anything else already in that file. With no options, it lists the installs it finds — globally and in the current directory — and offers to update them, install somewhere else, or uninstall.
 
 ## Uninstall
 

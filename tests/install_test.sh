@@ -9,7 +9,7 @@ set -uo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 installer="$here/../install.sh"
-skill_count="$(ls -d "$here"/../skills/*/ | wc -l | tr -d ' ')"
+skill_count="$(ls "$here"/../skills/*/SKILL.md | wc -l | tr -d ' ')"
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
@@ -291,6 +291,68 @@ test_plan_uninstall_without_terminal_needs_yes() {
   status_is 1
   saw "pass --yes"
   exists "$HOME/.claude/skills/dev-debug"
+}
+
+# --- retired skills ---------------------------------------------------------
+
+# A skill an earlier version installed: a folder whose SKILL.md carries its name.
+retired_skill() {
+  mkdir -p "$1/dev-verify"
+  printf -- '---\nname: dev-verify\ndescription: old\n---\n' > "$1/dev-verify/SKILL.md"
+}
+
+test_retired_update_names_and_removes_it() {
+  plain_run --agents claude --scope global
+  retired_skill "$HOME/.claude/skills"
+  tty_run '\n' --agents claude --scope global
+  saw "update $skill_count skills, remove retired dev-verify"
+  absent "$HOME/.claude/skills/dev-verify"
+  exists "$HOME/.claude/skills/dev-review"
+}
+
+test_retired_folder_that_is_not_ours_is_left() {
+  plain_run --agents claude --scope global
+  mkdir -p "$HOME/.claude/skills/dev-verify"
+  echo mine > "$HOME/.claude/skills/dev-verify/notes.txt"
+  plain_run --agents claude --scope global
+  not_saw "retired"
+  saw "left in place"
+  exists "$HOME/.claude/skills/dev-verify/notes.txt"
+}
+
+test_retired_uninstall_removes_it() {
+  plain_run --agents claude --scope global
+  retired_skill "$HOME/.claude/skills"
+  plain_run --uninstall --agents claude --scope global --yes
+  saw "remove $skill_count skills, remove retired dev-verify"
+  absent "$HOME/.claude/skills"
+}
+
+# A source that still ships the skill, such as an older ref, does not retire it.
+test_retired_skill_the_source_still_ships_is_installed() {
+  mkdir -p "$CASE/src"
+  cp -R "$here/../install.sh" "$here/../router.md" "$here/../skills" "$CASE/src/"
+  retired_skill "$CASE/src/skills"
+  (cd "$PROJECT" && bash "$CASE/src/install.sh" --agents claude --scope global </dev/null) > "$OUT" 2>&1
+  saw "install $((skill_count + 1)) skills"
+  not_saw "retired"
+  exists "$HOME/.claude/skills/dev-verify/SKILL.md"
+  (cd "$PROJECT" && bash "$CASE/src/install.sh" --agents claude --scope global </dev/null) > "$OUT" 2>&1
+  saw "update $((skill_count + 1)) skills"
+  not_saw "retired"
+  exists "$HOME/.claude/skills/dev-verify/SKILL.md"
+}
+
+test_retired_alone_is_found_by_a_bare_uninstall() {
+  retired_skill "$HOME/.claude/skills"
+  plain_run --uninstall --yes
+  saw "$(printf '    skills  %-40s %s' "$HOME/.claude/skills" "remove retired dev-verify")"
+  absent "$HOME/.claude/skills"
+}
+
+test_retired_absent_is_not_mentioned() {
+  tty_run '\n' --agents claude --scope global
+  not_saw "retired"
 }
 
 # --- existing installs ------------------------------------------------------

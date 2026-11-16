@@ -51,13 +51,34 @@ Most direct-mode changes are a single task (router, *Terms*). Each task goes tes
 
 **Forecast the size before the first test.** Past 400 changed lines, tests included, the lane is *Planned*: switch to it, starting at `dev-explore`.
 
-**Changing behavior that existing tests pin?** Edit those tests to the new behavior first and watch them fail; the request is the requirement `dev-verify` traces them to. A new test beside an old one that still asserts the old behavior leaves the suite contradicting itself.
+**Changing behavior that existing tests pin?** Edit those tests to the new behavior first and watch them fail; the request is the requirement `dev-review` traces them to. A new test beside an old one that still asserts the old behavior leaves the suite contradicting itself.
 
 **A schema or data migration?** Code already deployed reads the schema you change: sequence it per `dev-plan`, *Task structure* — expand, backfill and switch the reads now, with a down migration unless the repo's migrations are forward-only, and leave the contract step, which drops the old form, to a later change listed under follow-ups. A request for the drop now is asked before it's built: deployed code reads the old form until this change is released.
 
-Commit each task per `dev-ship`, *One task, one commit*: in direct mode only the last one waits for `dev-verify`, which is its review. No sub-agents and no per-task review.
+Commit each task per `dev-ship`, *One task, one commit*: in direct mode only the last one waits for `dev-review`, run over the whole branch with its uncommitted work, and is committed once *After the review* is through. No sub-agents and no per-task review.
 
 **Touch only what the request needs** (router, rule 4): the unrelated bug, the tempting rename, the file that "could use a cleanup" go in the report's follow-ups. Noticed is not debugged — `dev-debug` is for unexpected behavior in what you're changing.
+
+## After the review
+
+`dev-review` changes nothing: what it reports is fixed here, in either mode.
+
+- **Numbered `Critical` and `Important` findings:** fix each, test first per `dev-testing` — the finding's `Trigger` is the failing test. A fix whose expected result only the user can give is asked first (router, rule 3).
+- **A red check, or `update` on the `Agent file` line:** fix the first, unless the baseline showed it too; make the second as reported.
+- **`Minor` and `Pre-existing`:** `Follow-ups`, not fixes (router, rule 4).
+- **`Needs checking` and `Not checked`:** run the check each names. One that shows the defect is a finding to fix; one the repo cannot settle goes under `Open`, and so does a lens that failed or a group of files not covered. A lens that did not run because it had nothing to check needs nothing.
+
+**After fixing**, in direct mode, run `dev-review` again, over the paths the fixes touched: a fix is a change like any other, and it makes the earlier report stale. Its checks run in full, per `dev-review`, *Checks*, and its report replaces the first. Two reviews at most: what the second reports goes under `Open`, as reported.
+
+**The change's closing report** is the last review's report as it is, then:
+
+```
+Decisions:  <what — why — cost if wrong, or none; from the spec, the ledger or the conversation>
+Follow-ups: <minor and pre-existing findings of either review, and what was noticed and left out of scope — or none>
+Open:       <what the second review reported or could not be settled, and anything a reader would want to know before merging — or none>
+```
+
+In delegated mode the fixes are dispatched and each round is reviewed again, per `references/delegated.md`, *Per task* and *After the last task*.
 
 ## The ledger
 

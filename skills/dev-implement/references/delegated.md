@@ -35,12 +35,12 @@ A task's other artifacts are files in `.dev-runs/<slug>/`, beside the ledger:
 
 - `task-N-brief.md` — what the implementer gets;
 - `task-N-report.md` — its full report;
-- `task-N-diff.md` — the task's diff and untracked files, written for the reviewer;
+- `task-N-diff.md` — the task's diff and untracked files as they were reviewed: resuming compares the tree with it;
 - `task-N-review.md` — the review.
 
 Hand them over by path: whatever you paste into a dispatch, and whatever comes back, stays in your context for the rest of the plan.
 
-Before dispatching Task 1, run the project's full test command once on the work branch and log `Plan: baseline — <command> → <result>`. A red test it shows is pre-existing: implementers and reviewers are told so, and `dev-verify` reports it as such.
+Before dispatching Task 1, run the project's full test command once on the work branch and log `Plan: baseline — <command> → <result>`. A red test it shows is pre-existing: implementers are told so, and it is the baseline `dev-review` is given.
 
 **Why the ledger exists:** conversation memory does not survive compaction. The single most expensive failure in this workflow is a coordinator that lost its place and re-ran tasks that were already done. After a compaction, the ledger and `git log` outrank your recollection.
 
@@ -70,7 +70,7 @@ Resuming, by the task's last line:
 - `report` — act on its status, per *Per task*, step 1, *On its status*.
 - `asked` — the question is still with the user: ask it again and dispatch nothing until they answer.
 - `answered` — from step 4: compare the tree with `task-N-diff.md` first; if the reviewed diff is gone or changed, tell the user and wait for them; otherwise continue step 4 with the answer. From step 1: re-dispatch, with the answer added to what step 1 lists.
-- `review` — rule on it first, per *Per task*, step 4. Nothing left to fix: commit and mark it `complete`. Otherwise start the next fix round, or rule if two rounds already ran.
+- `review` — settle it first, per *Per task*, step 4. Nothing left to fix: commit and mark it `complete`. Otherwise start the next fix round, or rule if two rounds already ran.
 - `fix round` — appended when the round is dispatched. If the working tree changed since the review, review that round's result; if not, re-dispatch the round, fresh: a resumed implementer may be gone.
 - `ruling` — once every surviving finding has one, commit and mark it `complete`.
 
@@ -119,14 +119,14 @@ Never stop between tasks to check in: the plan's go-ahead covered them. **A bloc
 
 **2. Verify the report before trusting it.** A self-report is a claim. Read the diff. If the report names a command, the claim is that command's output, not the sentence about it. An agent that reports success and changed nothing is a failure mode that occurs.
 
-**3. Dispatch a fresh reviewer** on that task's diff: does it do what the task asked, and does the quality hold? Does the diff honor its `Interfaces` block and the global constraints? Does it contain anything the task didn't ask for? Write the task's diff and untracked files to `task-N-diff.md`. The reviewer gets the paths of `task-N-brief.md`, `task-N-report.md` and `task-N-diff.md`, and the worktree path — not your history. It returns its review, and you write it to `task-N-review.md`. Brief it, and rule on an empty return, per `dev-verify`'s `references/review.md`, *The brief*, *Severity* and *A review that came back empty*: a minor finding is recorded, not a fix round.
+**3. Review the task** with `dev-review`, at Small depth, on the task's uncommitted diff. Write that diff and its untracked files to `task-N-diff.md` first: resuming compares the tree with it. `task-N-brief.md` is the review's intent — its `Interfaces` block and the global constraints included — `task-N-report.md` its claims, and the plan's baseline its baseline; a concern named in step 1 goes into the intent as something to check. You coordinate the review, so its reviewer and verifier get none of your history. Write its report to `task-N-review.md`. A minor finding is recorded, not a fix round.
 
-**4. Two fix rounds, maximum.** Rule on the review first, per `dev-verify`'s `references/review.md`, *Besides the findings*. Then:
+**4. Two fix rounds, maximum.** Settle the report's `Needs checking` and `Not checked` lines first, per `dev-implement`, *After the review*. Then:
 
-- **What a round gets:** only the findings to fix — the critical and important ones, and any listed item you confirmed as one. A fix whose expected result only the user can give is a block on the user, asked before any round.
+- **What a round gets:** only the findings to fix — the numbered `Critical` and `Important` ones, a red check, an `update` on the `Agent file` line, and any line you settled as one. A fix whose expected result only the user can give is a block on the user, asked before any round.
 - **Round 1** resumes the task's implementer with those findings when the host can message a live sub-agent: it knows the task and its own choices. Otherwise a fresh implementer gets the brief, the report and the findings.
 - **Round 2** is always a fresh implementer one model tier above round 1, with the brief, the report and the findings: a fix that didn't hold once suggests it can't see its own problem.
-- **Each round** edits the same uncommitted diff, appends its fix report to `task-N-report.md`, and gets a fresh reviewer — still none of your history.
+- **Each round** edits the same uncommitted diff, appends its fix report to `task-N-report.md`, and gets a fresh `dev-review` at Small depth.
 - **After round 2**, rule on each surviving finding, record the ruling in the ledger, and move on: a plan does not stall on a minor finding.
 - **A finding that contradicts what the plan mandates**, in any round: the spec decides — rule and record.
 
@@ -134,14 +134,14 @@ Never stop between tasks to check in: the plan's go-ahead covered them. **A bloc
 
 ## After the last task
 
-**A fix from any `dev-verify` gate is not yours to write.** Dispatch a fresh implementer with the finding, the spec requirements it touches and the diff, under a fix round's limits (*Per task*, step 4), but always fresh: no task implementer is left to resume. Every task is already committed, so the fix is a commit of its own, logged `Plan: fix — <finding> — <sha>`.
+**A fix for what `dev-review` reports is not yours to write.** Dispatch a fresh implementer with the finding, the spec requirements it touches and the diff, under a fix round's limits (*Per task*, step 4), but always fresh: no task implementer is left to resume. Every task is already committed, so the fix is a commit of its own, logged `Plan: fix — <finding> — <sha>`.
 
 ## Slices
 
 Every plan is cut into slices, and every slice runs on the plan's branch, the one the ledger's header names: a slice is a verification checkpoint, not a branch. Create no branch per slice. No stop between slices: the plan's go-ahead covered them.
 
-1. After a slice's last task is `complete`, run `dev-verify` on that slice — its diff from where it started: the previous slice's `verified` sha, or the merge-base with the target for Slice 1. Land its fixes on the plan's branch and append `Slice K: verified — <sha>`, the commit the next slice starts from.
-2. When the last slice is verified, run gate 2 of `dev-verify` once more, against the whole spec, over the whole branch — a requirement split across slices is checked nowhere else — and append `Plan: verified — <branch>`. The last slice's verification is the pre-PR `dev-verify`; don't run it twice.
+1. After a slice's last task is `complete`, run `dev-review` on that slice — its range from where it started: the previous slice's `verified` sha, or the merge-base with the target for Slice 1 — with the spec requirements its tasks cite as the intent. Land its fixes on the plan's branch, per *After the last task*, and append `Slice K: verified — <sha>`, the commit the next slice starts from.
+2. When the last slice is verified, run `dev-review` once more with its intent lens alone, against the whole spec, over the whole branch — a requirement split across slices is checked nowhere else — and append `Plan: verified — <branch>`. The last slice's review is the pre-PR `dev-review`; don't run it twice.
 3. `dev-ship` integrates the branch.
 
 Resuming: a slice whose tasks are all `complete` but that has no `verified` line gets verified before anything else; every slice verified and no `Plan: verified` line means step 2 hasn't run.

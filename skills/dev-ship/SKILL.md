@@ -15,14 +15,14 @@ The router's *Trivial* lane runs from here.
 2. Edit.
 3. Run the suite and the linter. Skip both for docs that nothing builds or tests.
 4. Trace every hunk to the request. Revert what traces to nothing.
-5. Search the instruction files for every path, command or name the diff changes. A hit loads `dev-verify` and follows only its *First — the instruction-file triage*.
+5. Search the instruction files for every path, command or name the diff changes. A hit is settled per `dev-review`'s `references/checks.md`, *Instruction files*, and nothing else of that skill: make the `update` it reports.
 6. Commit once, per *One task, one commit*.
 7. Report in three lines: `Checks:` each command → result, or `not run — docs only`; `Scope:` every hunk traced, reverted hunks listed; `Agent file:` no update, updated, or the proposal. There is no baseline on this lane, so a red test is reported red, not attributed.
 8. Integrate, per *Integrating*, then *Cleanup*.
 
 ## One task, one commit
 
-A task is done when its tests pass and its review, if it has one, is through — then it gets its commit. In direct mode the last task's review is `dev-verify`. One task, one commit; several tasks, one commit each, in order. Review fixes are edits before the commit. A fix found after its task was committed is a commit of its own.
+A task is done when its tests pass and its review, if it has one, is through — then it gets its commit. In direct mode the last task's review is `dev-review`, and its fixes follow `dev-implement`, *After the review*. One task, one commit; several tasks, one commit each, in order. Review fixes are edits before the commit. A fix found after its task was committed is a commit of its own.
 
 A task is never a file type: `add models`, then `add services`, then `add tests` produces three commits of which none works alone and none can be reviewed or reverted on its own. **Tests go in the same commit as the behavior they verify.** Docs go with the change they explain — the docs that already describe what changed; new docs only when the request asks for them.
 
@@ -39,10 +39,10 @@ Stage by path, never `git add -A` or `git commit -a`: the tree may hold work tha
 
 ## Integrating
 
-Never merge into the default branch without the user's explicit say-so. When the work is done and `dev-verify` is clean — or, on the *Trivial* lane, its steps are — present the options with your recommendation and do the one chosen:
+Never merge into the default branch without the user's explicit say-so. When the work is done and the last `dev-review` reads `Ready`, or everything it left is settled or under `Open`, per `dev-implement`, *After the review* — or, on the *Trivial* lane, its steps are done — present the options with your recommendation and do the one chosen:
 
 - **Open a PR** — the default when anyone else will read this. A plan opens one PR for its whole branch.
-- **Merge directly** — only with explicit say-so. Fast-forward the target to its remote, merge, then run the full suite and gate 1's other checks on the merged result before deleting anything. Push the merged target only if the user said to push. Red: stop, keep the branch and worktree, and report it; nothing has been pushed.
+- **Merge directly** — only with explicit say-so. Fast-forward the target to its remote, merge, then run the checks of `dev-review`, *Checks*, on the merged result before deleting anything. Push the merged target only if the user said to push. Red: stop, keep the branch and worktree, and report it; nothing has been pushed.
 - **Keep the branch** — the work continues.
 - **Discard** — the experiment answered its question.
 
@@ -56,7 +56,7 @@ Merge the target branch into the work branch only when the PR shows conflicts, t
 
 - Resolve each conflict from why each side exists — the commit messages, the PR, the ledger — not from the text alone. Keep both intents wherever they're compatible: taking one side wholesale (`--ours`, `--theirs`) drops a change somebody made on purpose.
 - Where both can't hold, which one wins is the user's decision: ask it.
-- The merge is a commit of its own. Before pushing it, run gates 1 and 2 of `dev-verify` again over the whole branch: a merge is the easiest place to write code that passes neither side's tests.
+- The merge is a commit of its own. Before pushing it, run `dev-review` again over the whole branch, its checks and its intent lens alone: a merge is the easiest place to write code that passes neither side's tests.
 
 ## Cleanup
 
