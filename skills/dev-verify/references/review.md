@@ -53,10 +53,10 @@ Give it these rules as written:
 | Severity | What it is | Before shipping |
 |---|---|---|
 | **Critical** | a wrong result, data loss or a security hole, with its trigger | fixed |
-| **Important** | a requirement the diff misses, code no requirement needs, a failure on an input the spec implies | fixed |
+| **Important** | a requirement the diff misses, code no requirement needs, a failure on an input the spec implies, a breach of a documented standard | fixed |
 | **Minor** | a quality problem in the changed lines | recorded under `Follow-ups` |
 
-A critical or important finding with no `Trigger` is minor.
+A critical or important finding with no `Trigger` is minor. For a breach of a documented standard, the `Trigger` is the changed line and the rule it breaks, cited with its file.
 
 ## The security lens
 
