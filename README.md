@@ -66,6 +66,8 @@ If you already have this repository checked out, `./install.sh` works the same w
 
 Codex CLI skills go to `~/.agents/skills` (or `.agents/skills` in a project). If an earlier version of this installer put them in `.codex/skills`, delete the `dev-*` folders there.
 
+Pi shares the Codex CLI destinations: `~/.agents/skills` (or `.agents/skills` in a project) — the standard Agent Skills location pi reads, whatever the fork. The router block goes to pi's agent directory: `~/.omp/agent/AGENTS.md` when the omp fork of pi is installed (a `~/.omp` directory exists), `~/.pi/agent/AGENTS.md` on the original pi.
+
 Running install again — with the same or different agents — updates an existing install in place: skills are refreshed, a skill an earlier version installed and this one no longer ships is removed, and the instruction-file block is replaced, without touching anything else already in that file. With no options, it lists the installs it finds — globally and in the current directory — and offers to update them, install somewhere else, or uninstall.
 
 ## Uninstall

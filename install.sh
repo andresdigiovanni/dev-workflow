@@ -12,7 +12,7 @@
 # install is a plain copy, independent of this script afterward.
 #
 # Usage:
-#   ./install.sh [--uninstall] [--agents claude,codex,opencode]
+#   ./install.sh [--uninstall] [--agents claude,codex,opencode,pi]
 #                [--scope global|project] [--dir PATH] [--ref REF] [--yes]
 #
 # Run with no flags for an interactive menu.
@@ -32,8 +32,8 @@ REF="${DEV_WORKFLOW_REF:-main}"
 MARKER_START="<!-- dev-workflow:start -->"
 MARKER_END="<!-- dev-workflow:end -->"
 
-AGENT_IDS=(claude codex opencode)
-AGENT_LABELS=("Claude Code" "Codex CLI" "OpenCode")
+AGENT_IDS=(claude codex opencode pi)
+AGENT_LABELS=("Claude Code" "Codex CLI" "OpenCode" "Pi")
 
 MODE="install"
 SCOPE=""
@@ -72,7 +72,7 @@ Usage:
   ./install.sh --uninstall [options]
 
 Options:
-  --agents LIST     Comma-separated: claude, codex, opencode, or all.
+  --agents LIST     Comma-separated: claude, codex, opencode, pi, or all.
                      Skips the interactive selector.
   --scope SCOPE      global (your home directory) or project (--dir).
                      Skips the interactive selector.
@@ -225,6 +225,8 @@ agent_detected() {
     claude)   command -v claude   >/dev/null 2>&1 || [ -d "$HOME/.claude" ] ;;
     codex)    command -v codex    >/dev/null 2>&1 || [ -d "$HOME/.codex" ] ;;
     opencode) command -v opencode >/dev/null 2>&1 || [ -d "$HOME/.config/opencode" ] ;;
+    pi)       command -v pi >/dev/null 2>&1 || command -v omp >/dev/null 2>&1 \
+              || [ -d "$HOME/.pi" ] || [ -d "$HOME/.omp" ] ;;
     *) return 1 ;;
   esac
 }
@@ -363,6 +365,17 @@ PROJECT_DIR="$(cd "$PROJECT_DIR" 2>/dev/null && pwd)" || die "--dir does not exi
 # Per-agent target paths
 # ---------------------------------------------------------------------------
 
+# Pi (the original and the omp fork) reads the standard Agent Skills
+# location ~/.agents/skills. Only the instruction file branches: the omp
+# fork's agent directory is ~/.omp/agent, the original pi's ~/.pi/agent.
+pi_agent_dir() {
+  if [ -d "$HOME/.omp" ]; then
+    echo "$HOME/.omp/agent"
+  else
+    echo "$HOME/.pi/agent"
+  fi
+}
+
 skills_dir_for() {
   case "$1:$2" in
     claude:global)    echo "$HOME/.claude/skills" ;;
@@ -371,6 +384,8 @@ skills_dir_for() {
     codex:project)    echo "$PROJECT_DIR/.agents/skills" ;;
     opencode:global)  echo "$HOME/.config/opencode/skills" ;;
     opencode:project) echo "$PROJECT_DIR/.opencode/skills" ;;
+    pi:global)        echo "$HOME/.agents/skills" ;;
+    pi:project)       echo "$PROJECT_DIR/.agents/skills" ;;
   esac
 }
 
@@ -382,6 +397,8 @@ instruction_file_for() {
     codex:project)    echo "$PROJECT_DIR/AGENTS.md" ;;
     opencode:global)  echo "$HOME/.config/opencode/AGENTS.md" ;;
     opencode:project) echo "$PROJECT_DIR/AGENTS.md" ;;
+    pi:global)        echo "$(pi_agent_dir)/AGENTS.md" ;;
+    pi:project)       echo "$PROJECT_DIR/AGENTS.md" ;;
   esac
 }
 
@@ -571,6 +588,9 @@ print_plan() {
     instr_file="$(instruction_file_for "$agent" "$scope")"
 
     action="$(router_action "$instr_file")"
+    if [ "$MODE" = uninstall ] && any_sharer_has_block "$agent" "$scope"; then
+      action="leave skills (shared with another agent)"
+    fi
     i=0
     while [ "$i" -lt "${#files[@]}" ]; do
       [ "${files[$i]}" = "$instr_file" ] && action="same file as ${labels[$i]}"
@@ -588,17 +608,55 @@ print_plan() {
 # Existing installs
 # ---------------------------------------------------------------------------
 
+# True when $1's skills directory at scope $2 is also another agent's: pi
+# shares ~/.agents/skills with Codex CLI globally, and the project-scope
+# instruction file of pi and codex is the same AGENTS.md.
+dir_is_shared() {
+  local agent mine
+  mine="$(skills_dir_for "$1" "$2")"
+  for agent in "${AGENT_IDS[@]}"; do
+    [ "$agent" = "$1" ] && continue
+    [ "$(skills_dir_for "$agent" "$2")" = "$mine" ] && return 0
+  done
+  return 1
+}
+
+file_has_block() {
+  [ -f "$1" ] && grep -qxF "$MARKER_START" "$1"
+}
+
+# True when another agent with the same skills directory carries the router
+# block in its instruction file.
+any_sharer_has_block() {
+  local agent mine
+  mine="$(skills_dir_for "$1" "$2")"
+  for agent in "${AGENT_IDS[@]}"; do
+    [ "$agent" = "$1" ] && continue
+    [ "$(skills_dir_for "$agent" "$2")" = "$mine" ] || continue
+    if file_has_block "$(instruction_file_for "$agent" "$2")"; then return 0; fi
+  done
+  return 1
+}
+
 # Every agent:scope whose skills directory already holds a dev-workflow
 # skill. From $HOME the project paths are the global ones, so only global.
+# A shared skills directory is attributed by the router block, not by the
+# skills alone: installing pi must not make a bare re-run also process
+# Codex CLI, whose instruction file was never written.
 find_installs() {
-  local scope agent
+  local scope agent dir
   FOUND=()
   for scope in global project; do
     [ "$scope" = project ] && same_dir "$PROJECT_DIR" "$HOME" && continue
     for agent in "${AGENT_IDS[@]}"; do
-      if [ "$(skills_present "$(skills_dir_for "$agent" "$scope")")" -gt 0 ] \
-          || [ -n "$(retired_present "$(skills_dir_for "$agent" "$scope")")" ]; then
-        FOUND+=("$agent:$scope")
+      dir="$(skills_dir_for "$agent" "$scope")"
+      if [ "$(skills_present "$dir")" -gt 0 ] \
+          || [ -n "$(retired_present "$dir")" ]; then
+        if file_has_block "$(instruction_file_for "$agent" "$scope")" \
+           || ! dir_is_shared "$agent" "$scope" \
+           || ! any_sharer_has_block "$agent" "$scope"; then
+          FOUND+=("$agent:$scope")
+        fi
       fi
     done
   done
@@ -670,7 +728,7 @@ if [ "${#TARGETS[@]}" -eq 0 ]; then
     else
       saved_ifs="$IFS"; IFS=','
       for a in $AGENTS_ARG; do
-        case "$a" in claude|codex|opencode) SELECTED_AGENTS+=("$a") ;; *) die "unknown agent: $a" ;; esac
+        case "$a" in claude|codex|opencode|pi) SELECTED_AGENTS+=("$a") ;; *) die "unknown agent: $a" ;; esac
       done
       IFS="$saved_ifs"
     fi
@@ -744,15 +802,19 @@ else
     step "$(label_for "$agent") ($scope)"
 
     target_skills_dir="$(skills_dir_for "$agent" "$scope")"
-    for name in "${SKILL_NAMES[@]}"; do
-      remove_skill "$name" "$target_skills_dir"
-    done
-    for name in "${RETIRED_SKILLS[@]}"; do
-      if is_retired "$name"; then remove_skill "$name" "$target_skills_dir"; fi
-    done
-    rmdir "$target_skills_dir" 2>/dev/null || true
-    [ "$scope" = project ] && { rmdir "$(dirname "$target_skills_dir")" 2>/dev/null || true; }
-    ok "skills removed from $target_skills_dir"
+    if any_sharer_has_block "$agent" "$scope"; then
+      ok "skills left in $target_skills_dir (shared with another agent)"
+    else
+      for name in "${SKILL_NAMES[@]}"; do
+        remove_skill "$name" "$target_skills_dir"
+      done
+      for name in "${RETIRED_SKILLS[@]}"; do
+        if is_retired "$name"; then remove_skill "$name" "$target_skills_dir"; fi
+      done
+      rmdir "$target_skills_dir" 2>/dev/null || true
+      [ "$scope" = project ] && { rmdir "$(dirname "$target_skills_dir")" 2>/dev/null || true; }
+      ok "skills removed from $target_skills_dir"
+    fi
 
     instr_file="$(instruction_file_for "$agent" "$scope")"
     if already_processed "$instr_file"; then

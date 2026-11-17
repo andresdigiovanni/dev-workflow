@@ -195,6 +195,83 @@ test_agents_a_selects_all() {
   exists "$HOME/.config/opencode/skills/dev-debug"
 }
 
+test_pi_without_omp_installs_to_agents_dir_and_pi_agent_md() {
+  tty_run '\n' --agents pi --scope global --yes
+  exists "$HOME/.agents/skills/dev-debug"
+  exists "$HOME/.agents/skills/dev-review"
+  exists "$HOME/.pi/agent/AGENTS.md"
+  not_saw "error"
+}
+
+test_pi_omp_fork_installs_into_the_omp_agent_dir() {
+  mkdir -p "$HOME/.omp"
+  tty_run '\n' --agents pi --scope global --yes
+  saw "Pi (global)"
+  saw "$HOME/.omp/agent/AGENTS.md"
+  exists "$HOME/.agents/skills/dev-debug"
+  exists "$HOME/.omp/agent/AGENTS.md"
+  absent "$HOME/.pi"
+}
+
+test_pi_detected_by_binary() {
+  fake_agent pi
+  tty_run '\n' --scope global --yes
+  saw "[x] 4) Pi  (detected)"
+  exists "$HOME/.agents/skills/dev-debug"
+}
+
+test_pi_detected_by_omp_dir() {
+  mkdir -p "$HOME/.omp"
+  tty_run '\n' --scope global --yes
+  saw "[x] 4) Pi  (detected)"
+  exists "$HOME/.agents/skills/dev-debug"
+  exists "$HOME/.omp/agent/AGENTS.md"
+}
+
+test_pi_project_installs_to_agents_dir_and_standalone_agents_md() {
+  tty_run '\n' --agents pi --scope project --yes
+  exists "$PROJECT/.agents/skills/dev-debug"
+  exists "$PROJECT/AGENTS.md"
+}
+
+test_pi_uninstall_removes_the_omp_block_and_the_agents_skills() {
+  mkdir -p "$HOME/.omp"
+  plain_run --agents pi --scope global --yes
+  plain_run --uninstall --agents pi --scope global --yes
+  absent "$HOME/.agents/skills/dev-debug"
+  absent "$HOME/.omp/agent/AGENTS.md"
+}
+
+# Pi shares ~/.agents/skills with Codex CLI. The router block, not the
+# skills, says which agent is installed; a bare re-run must not process
+# codex, whose instruction file was never written.
+test_shared_skills_dir_is_attributed_by_the_router_block() {
+  mkdir -p "$HOME/.omp"
+  plain_run --agents pi --scope global --yes
+  tty_run '\n\n' --yes
+  not_saw "Codex CLI (global)"
+  absent "$HOME/.codex"
+  exists "$HOME/.agents/skills/dev-debug"
+}
+
+# Uninstalling one of two agents that share a skills directory leaves the
+# skills for the other; uninstalling both removes them whichever goes first.
+test_uninstall_of_one_sharer_leaves_the_shared_skills() {
+  plain_run --agents pi,codex --scope global --yes
+  plain_run --uninstall --agents pi --scope global --yes
+  absent "$HOME/.omp/agent/AGENTS.md"
+  exists "$HOME/.agents/skills/dev-debug"
+  exists "$HOME/.codex/AGENTS.md"
+}
+
+test_uninstall_of_both_sharers_removes_the_skills() {
+  plain_run --agents pi,codex --scope global --yes
+  plain_run --uninstall --agents codex --scope global --yes
+  exists "$HOME/.agents/skills/dev-debug"
+  plain_run --uninstall --agents pi --scope global --yes
+  absent "$HOME/.agents/skills/dev-debug"
+}
+
 # --- plan and confirmation --------------------------------------------------
 
 test_plan_lists_paths_and_actions() {
