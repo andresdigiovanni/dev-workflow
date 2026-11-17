@@ -107,6 +107,48 @@ class LintSkillsTest(unittest.TestCase):
     def test_flags_a_broken_reference_in_the_repo_agents_file(self):
         self.check(["AGENTS.md:1: reference"], extra={"AGENTS.md": "See `dev-a`, *Third step*.\n"})
 
+    def test_flags_a_tool_name_in_a_nested_reference_file(self):
+        self.check(["skills/dev-a/references/deep/ref.md:1: tool-name"],
+                   extra={"skills/dev-a/references/deep/ref.md": "Open it with `Read`.\n"})
+
+    def test_flags_a_missing_skill_named_in_a_nested_reference_file(self):
+        self.check(["skills/dev-a/references/deep/ref.md:1: reference"],
+                   extra={"skills/dev-a/references/deep/ref.md": "Unlike `dev-z`.\n"})
+
+    def test_a_nested_reference_file_cites_the_references_of_its_own_skill(self):
+        self.assertEqual(
+            self.lint(extra={"skills/dev-a/references/deep/ref.md":
+                             "See `references/ref.md`, *Nope*.\n"}),
+            ["skills/dev-a/references/deep/ref.md:1: reference — "
+             "no section *Nope* in skills/dev-a/references/ref.md"])
+
+    def test_a_nested_reference_cited_from_another_skill_is_checked_against_its_path(self):
+        self.assertEqual(
+            self.lint(B, "See ", "See `dev-a`'s `references/deep/ref.md`, *Nope*. ",
+                      extra={"skills/dev-a/references/deep/ref.md": "# Deep\n\n## The brief\n"}),
+            ["skills/dev-b/SKILL.md:6: reference — "
+             "no section *Nope* in skills/dev-a/references/deep/ref.md"])
+
+    def test_a_missing_nested_reference_file_is_reported(self):
+        self.assertEqual(
+            self.lint(A, "Per *Second step*", "Per `references/deep/gone.md`, *Nope*"),
+            ["skills/dev-a/SKILL.md:8: reference — "
+             "no file skills/dev-a/references/deep/gone.md"])
+
+    def test_a_nested_reference_section_in_an_eval_tests_line_is_checked_against_its_path(self):
+        self.assertEqual(
+            self.lint(S, "`references/ref.md`, *The brief*.", "`references/deep/ref.md`, *The brief*.",
+                      extra={"skills/dev-a/references/deep/ref.md": "# Deep\n\n## The brief\n"}),
+            [])
+
+    def test_flags_a_tool_name_in_a_reference_file_directly_in_references(self):
+        self.check(["skills/dev-a/references/flat.md:1: tool-name"],
+                   extra={"skills/dev-a/references/flat.md": "Open it with `Read`.\n"})
+
+    def test_flags_a_tool_name_in_a_reference_file_two_folders_down(self):
+        self.check(["skills/dev-a/references/a/b/ref.md:1: tool-name"],
+                   extra={"skills/dev-a/references/a/b/ref.md": "Open it with `Read`.\n"})
+
     def test_ignores_headings_inside_code_fences(self):
         self.check([A + ":8: reference"], A, "Per *Second step*", "Per *Fenced*")
 

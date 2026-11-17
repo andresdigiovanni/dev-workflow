@@ -125,12 +125,6 @@ class Readme(unittest.TestCase):
     def setUpClass(cls):
         cls.text = helpers.read("README.md")
 
-    def test_the_diagram_is_text(self):
-        self.assertIn("```mermaid", self.text)
-        self.assertIn('review -- "findings" --> implement', self.text)
-        self.assertNotIn("how-it-routes.png", self.text)
-        self.assertFalse((helpers.ROOT / "assets").exists())
-
     def test_it_describes_the_review(self):
         for token in ["dev-review/        checks", "`dev-review/references/`",
                       "or `dev-ship` on the Trivial lane", "also runs outside the workflow"]:

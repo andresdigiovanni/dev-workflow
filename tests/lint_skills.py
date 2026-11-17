@@ -24,10 +24,10 @@ TOOL = re.compile(
     r"|\b(Read|Write|Edit|Bash|Grep|Glob|Task|Agent|Skill) tool\b")
 SKILL = re.compile(r"`(dev-[a-z0-9-]+)`")
 CHAIN = r"\*([^*]+)\*((?:(?:, and|,| and) \*[^*]+\*)*)"
-SECTION = re.compile(r"(?:`(dev-[a-z0-9-]+)`(?:'s)? ?)?(?:`(references/[a-z0-9-]+\.md)`)?"
+SECTION = re.compile(r"(?:`(dev-[a-z0-9-]+)`(?:'s)? ?)?(?:`(references/[a-z0-9/-]+\.md)`)?"
                      r"(router)?, " + CHAIN)
 LOCAL = re.compile(r"\b(?:per|in) " + CHAIN, re.I)
-CLAUSE = re.compile(r"\s*(?:`(dev-[a-z0-9-]+)`(?:'s `(references/[a-z0-9-]+\.md)`)?|(router)\b)")
+CLAUSE = re.compile(r"\s*(?:`(dev-[a-z0-9-]+)`(?:'s `(references/[a-z0-9/-]+\.md)`)?|(router)\b)")
 
 
 def prose(text):
@@ -104,10 +104,10 @@ def lint(root):
 
     agents = os.path.join(root, "AGENTS.md")
     files = [router] + ([agents] if os.path.isfile(agents) else []) + sorted(glob.glob(os.path.join(skills_dir, "*", "SKILL.md"))
-                              + glob.glob(os.path.join(skills_dir, "*", "references", "*.md")))
+                              + glob.glob(os.path.join(skills_dir, "*", "references", "**", "*.md"),
+                                          recursive=True))
     for path in files:
-        own = os.path.basename(os.path.dirname(path)) if path.endswith("SKILL.md") else \
-            os.path.basename(os.path.dirname(os.path.dirname(path)))
+        own = os.path.relpath(path, skills_dir).split(os.sep)[0]
         for n, line in enumerate(read(path).splitlines(), 1):
             for m in TOOL.finditer(line):
                 flag(path, n, "tool-name", f"{m.group(0)}: write the action, not the tool")

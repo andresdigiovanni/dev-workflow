@@ -293,6 +293,14 @@ test_plan_uninstall_without_terminal_needs_yes() {
   exists "$HOME/.claude/skills/dev-debug"
 }
 
+# --- what a skill carries ---------------------------------------------------
+
+test_skill_reference_files_are_installed() {
+  plain_run --agents claude --scope global
+  exists "$HOME/.claude/skills/dev-review/references/report.md"
+  exists "$HOME/.claude/skills/dev-testing/references/property-based.md"
+}
+
 # --- retired skills ---------------------------------------------------------
 
 # A skill an earlier version installed: a folder whose SKILL.md carries its name.

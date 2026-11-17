@@ -1,6 +1,6 @@
 # dev-workflow
 
-A development workflow as seven portable skills: five phases plus two support skills. Every phase that can be skipped carries a written criterion for when.
+A development workflow as seven portable skills: five phases and two support skills. Every phase that can be skipped carries a written criterion for when.
 
 ## Layout
 
