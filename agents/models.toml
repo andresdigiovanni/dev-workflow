@@ -1,0 +1,68 @@
+# Default models per harness and dispatch role, read by the installer.
+# OpenAI: gpt-6.2-sol for coding/agent work, gpt-6-luna for high-volume
+# focused tasks. Claude Code: pinned model IDs, so the version is the same
+# on every provider (aliases resolve to older models on Bedrock, Vertex
+# and Microsoft Foundry). Where a harness accepts several providers (omp,
+# opencode), the verifier runs on a different family than the reviewer.
+# [<harness>.effort] sets each role's reasoning effort, in the harness's own
+# vocabulary; a role with no entry gets no effort line.
+
+[omp]
+default = "openai/gpt-6.2-sol"
+dev-fact-finder = "openai/gpt-6-luna"
+dev-builder-check = "openai/gpt-6.2-sol"
+dev-implementer = "openai/gpt-6.2-sol"
+dev-reviewer = "openai/gpt-6.2-sol"
+dev-verifier = "anthropic/claude-opus-5-5"
+
+[omp.effort]
+dev-fact-finder = "low"
+dev-builder-check = "high"
+dev-implementer = "high"
+dev-reviewer = "high"
+dev-verifier = "high"
+
+[opencode]
+default = "openai/gpt-6.2-sol"
+dev-fact-finder = "openai/gpt-6-luna"
+dev-builder-check = "openai/gpt-6.2-sol"
+dev-implementer = "openai/gpt-6.2-sol"
+dev-reviewer = "openai/gpt-6.2-sol"
+dev-verifier = "anthropic/claude-opus-5-5"
+
+[opencode.effort]
+dev-fact-finder = "low"
+dev-builder-check = "high"
+dev-implementer = "high"
+dev-reviewer = "high"
+dev-verifier = "high"
+
+[claude-code]
+default = "claude-sonnet-5-5"
+dev-fact-finder = "claude-haiku-5-5"
+dev-builder-check = "claude-sonnet-5-5"
+dev-implementer = "claude-sonnet-5-5"
+dev-reviewer = "claude-opus-5-5"
+dev-verifier = "claude-opus-5-5"
+
+[claude-code.effort]
+dev-fact-finder = "low"
+dev-builder-check = "high"
+dev-implementer = "high"
+dev-reviewer = "high"
+dev-verifier = "high"
+
+[codex]
+default = "gpt-6.2-sol"
+dev-fact-finder = "gpt-6-luna"
+dev-builder-check = "gpt-6.2-sol"
+dev-implementer = "gpt-6.2-sol"
+dev-reviewer = "gpt-6.2-sol"
+dev-verifier = "gpt-6.2-sol"
+
+[codex.effort]
+dev-fact-finder = "low"
+dev-builder-check = "high"
+dev-implementer = "high"
+dev-reviewer = "high"
+dev-verifier = "high"

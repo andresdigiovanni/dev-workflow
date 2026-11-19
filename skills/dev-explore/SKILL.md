@@ -20,7 +20,7 @@ A question in the wrong column wastes a round trip. "Which test framework does t
 
 ## 2. Resolve the facts in parallel
 
-Dispatch one sub-agent per independent factual question, all in the same turn. Each returns the answer and the file paths that prove it, not file dumps.
+Dispatch one sub-agent per independent factual question, all in the same turn: dispatch to the `dev-fact-finder` agent when one is defined, else a fresh sub-agent, else *Without sub-agents*. Each returns the answer and the file paths that prove it, not file dumps.
 
 Give each one a question, not a topic: "Does the auth module validate token expiry, and where?", not "look into auth". A fact one search answers, answer yourself: a sub-agent costs more than the search.
 

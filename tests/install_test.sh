@@ -36,7 +36,16 @@ on_tty() {
 # has started — the pty drops keys sent before that. Output to $OUT.
 tty_run() {
   local keys="$1"; shift
-  { sleep 0.5; printf '%b' "$keys"; sleep 1; } \
+  # Feed one line at a time: a burst can outrun the pty's canonical buffer
+  # on macOS and drop keys mid-menu.
+  {
+    sleep 0.5
+    printf '%b' "$keys" | while IFS= read -r line; do
+      printf '%s\n' "$line"
+      sleep 0.3
+    done
+    sleep 5
+  } \
     | (cd "$PROJECT" && on_tty bash "$installer" "$@") 2>&1 | tr -d '\r' > "$OUT"
   STATUS="${PIPESTATUS[1]}"
 }
@@ -50,6 +59,10 @@ not_saw()   { ! grep -qF -- "$1" "$OUT" || fail "output has: $1"; }
 exists()    { [ -e "$1" ] || fail "missing: $1"; }
 absent()    { [ ! -e "$1" ] || fail "should not exist: $1"; }
 status_is() { [ "$STATUS" = "$1" ] || fail "exit status $STATUS, expected $1"; }
+# grep an installed file's content as a test: a bare `grep -q` under the
+# runner sets no FAILED flag, so a false assertion would pass silently.
+content()   { grep -qE -- "$2" "$1" || fail "$1: lacks /$2/"; }
+no_content() { ! grep -qE -- "$2" "$1" || fail "$1: has /$2/"; }
 
 # --- scope menu -------------------------------------------------------------
 
@@ -275,7 +288,7 @@ test_uninstall_of_both_sharers_removes_the_skills() {
 # --- plan and confirmation --------------------------------------------------
 
 test_plan_lists_paths_and_actions() {
-  tty_run '\n' --agents claude --scope global
+  tty_run '\n\n\n\n\n\n\n\n\n\n\n\n' --agents claude --scope global
   saw "Plan:"
   saw "Claude Code (global)"
   saw "$HOME/.claude/skills"
@@ -327,7 +340,9 @@ test_plan_without_terminal_proceeds() {
 }
 
 test_plan_shared_agents_md_listed_once() {
-  tty_run '\n' --agents codex,opencode --scope project
+  # confirm, then Enter through claude-code's model and effort questions,
+  # then opencode's (a plain Enter keeps the plan's "same file" behavior going).
+  tty_run 'y\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' --agents codex,opencode --scope project
   saw "same file as Codex CLI"
   exists "$PROJECT/AGENTS.md"
 }
@@ -389,7 +404,8 @@ retired_skill() {
 test_retired_update_names_and_removes_it() {
   plain_run --agents claude --scope global
   retired_skill "$HOME/.claude/skills"
-  tty_run '\n' --agents claude --scope global
+  # confirm, then Enter through claude-code's model and effort questions.
+  tty_run 'y\n\n\n\n\n\n\n\n\n\n\n\n' --agents claude --scope global
   saw "update $skill_count skills, remove retired dev-verify"
   absent "$HOME/.claude/skills/dev-verify"
   exists "$HOME/.claude/skills/dev-review"
@@ -446,7 +462,9 @@ test_existing_update_refreshes_everything_found() {
   plain_run --agents claude --scope global
   plain_run --agents codex --scope project
   echo "stale" >> "$HOME/.claude/skills/dev-debug/SKILL.md"
-  tty_run '\n\n'
+  # update, confirm, then Enter through the model and effort questions of
+  # every selected harness (claude-code, codex and omp — eleven each).
+  tty_run '\ny\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n'
   saw "dev-workflow is already installed:"
   saw "Claude Code (global)"
   saw "Codex CLI (project)"
@@ -457,8 +475,10 @@ test_existing_update_refreshes_everything_found() {
 
 test_existing_install_elsewhere_goes_to_the_menus() {
   plain_run --agents claude --scope global
-  tty_run '2\n2\n\n2\n\n'
-  exists "$PROJECT/.agents/skills/dev-debug"
+  # "install somewhere else", reselect Claude Code in the agent menu,
+  # project scope, plan confirmation, then the model and effort questions.
+  tty_run '2\n1\n\n2\ny\n\n\n\n\n\n\n\n\n\n\n\n'
+  exists "$PROJECT/.claude/skills/dev-debug"
 }
 
 test_existing_menu_uninstall() {
@@ -511,9 +531,245 @@ test_existing_home_not_counted_twice() {
 }
 
 test_existing_none_goes_to_the_menus() {
-  tty_run '1\n\n\n\n'
+  # "1" selects Claude Code in the agent menu, Enter confirms it, Enter
+  # picks global scope, y confirms the plan, then the model and effort questions.
+  tty_run '1\n\n\ny\n\n\n\n\n\n\n\n\n\n\n\n'
   not_saw "already installed"
   exists "$HOME/.claude/skills/dev-debug"
+}
+
+# --- agents -----------------------------------------------------------------
+
+test_models_prompt_overrides_one_model() {
+  mkdir -p "$HOME/.omp"
+  # confirmation, then the omp model questions: Enter through default,
+  # dev-fact-finder, dev-builder-check, dev-implementer, type the
+  # dev-reviewer override, Enter through dev-verifier — then Enter through
+  # the five effort questions.
+  tty_run 'y\n\n\n\n\nopenai/gpt-6-luna\n\n\n\n\n\n\n' --agents pi --scope global
+  content "$HOME/.omp/agent/agents/dev-reviewer.md" "^model: openai/gpt-6-luna$"
+  content "$HOME/.omp/agent/agents/dev-implementer.md" "^model: openai/gpt-6.2-sol$"
+  content "$HOME/.omp/agent/agents/dev-fact-finder.md" "^model: openai/gpt-6-luna$"
+}
+
+test_effort_prompt_overrides_one_effort() {
+  mkdir -p "$HOME/.omp"
+  # confirmation, the six omp model questions, then the five effort
+  # questions: Enter through dev-fact-finder, dev-builder-check,
+  # dev-implementer, type an override for dev-reviewer and for dev-verifier
+  # — two, so a first override must survive the second.
+  tty_run 'y\n\n\n\n\n\n\n\n\n\nxhigh\nmax\n' --agents pi --scope global
+  content "$HOME/.omp/agent/agents/dev-reviewer.md" "^thinking-level: xhigh$"
+  content "$HOME/.omp/agent/agents/dev-verifier.md" "^thinking-level: max$"
+  content "$HOME/.omp/agent/agents/dev-implementer.md" "^thinking-level: high$"
+  content "$HOME/.omp/agent/agents/dev-fact-finder.md" "^thinking-level: low$"
+}
+
+test_models_file_sets_effort() {
+  printf '[claude-code]\ndefault = "m"\n\n[claude-code.effort]\ndev-reviewer = "max"\n' > "$CASE/models.toml"
+  plain_run --agents claude --scope global --models "$CASE/models.toml" --yes
+  content "$HOME/.claude/agents/dev-reviewer.md" "^effort: max$"
+  no_content "$HOME/.claude/agents/dev-implementer.md" "^effort:"
+}
+
+test_omp_agents_install_global_and_uninstall_clean() {
+  mkdir -p "$HOME/.omp"
+  plain_run --agents pi --scope global --yes
+  exists "$HOME/.omp/agent/agents/dev-reviewer.md"
+  exists "$HOME/.omp/agent/agents/dev-fact-finder.md"
+  exists "$HOME/.omp/agent/agents/dev-builder-check.md"
+  exists "$HOME/.omp/agent/agents/dev-implementer.md"
+  exists "$HOME/.omp/agent/agents/dev-verifier.md"
+  content "$HOME/.omp/agent/agents/dev-reviewer.md" "^name: dev-reviewer$"
+  content "$HOME/.omp/agent/agents/dev-reviewer.md" "^model: openai/gpt-6.2-sol$"
+  content "$HOME/.omp/agent/agents/dev-reviewer.md" "^thinking-level: high"
+  content "$HOME/.omp/agent/agents/dev-reviewer.md" "^tools: \[read, grep, glob, bash\]"
+  plain_run --uninstall --agents pi --scope global --yes
+  absent "$HOME/.omp/agent/agents/dev-reviewer.md"
+}
+
+test_omp_agents_project_scope() {
+  mkdir -p "$HOME/.omp"
+  plain_run --agents pi --scope project --yes
+  exists "$PROJECT/.omp/agents/dev-reviewer.md"
+}
+
+test_claude_agents_install_global() {
+  plain_run --agents claude --scope global --yes
+  exists "$HOME/.claude/agents/dev-reviewer.md"
+  content "$HOME/.claude/agents/dev-reviewer.md" "^model: claude-opus-5-5$"
+  content "$HOME/.claude/agents/dev-reviewer.md" "^effort: high"
+  no_content "$HOME/.claude/agents/dev-reviewer.md" "^alias:"
+  no_content "$HOME/.claude/agents/dev-reviewer.md" "thinking-level"
+  content "$HOME/.claude/agents/dev-reviewer.md" "^tools: Read, Grep, Glob, Bash"
+  plain_run --uninstall --agents claude --scope global --yes
+  absent "$HOME/.claude/agents/dev-reviewer.md"
+}
+
+test_opencode_agents_install_project() {
+  plain_run --agents opencode --scope project --yes
+  exists "$PROJECT/.opencode/agents/dev-reviewer.md"
+  content "$PROJECT/.opencode/agents/dev-reviewer.md" "^mode: subagent"
+  content "$PROJECT/.opencode/agents/dev-reviewer.md" "^model: openai/gpt-6.2-sol#high"
+  no_content "$PROJECT/.opencode/agents/dev-reviewer.md" "thinking-level"
+  no_content "$PROJECT/.opencode/agents/dev-reviewer.md" "^effort:"
+  plain_run --uninstall --agents opencode --scope project --yes
+  absent "$PROJECT/.opencode/agents/dev-reviewer.md"
+}
+
+test_codex_agents_install_global_toml() {
+  plain_run --agents codex --scope global --yes
+  exists "$HOME/.codex/agents/dev-reviewer.toml"
+  content "$HOME/.codex/agents/dev-reviewer.toml" '^name = "dev-reviewer"$'
+  content "$HOME/.codex/agents/dev-reviewer.toml" '^model = "gpt-6\.2-sol"$'
+  content "$HOME/.codex/agents/dev-reviewer.toml" '^model_reasoning_effort = "high"$'
+  content "$HOME/.codex/agents/dev-reviewer.toml" '^developer_instructions = """$'
+  no_content "$HOME/.codex/agents/dev-reviewer.toml" "^model:"
+  no_content "$HOME/.codex/agents/dev-reviewer.toml" "^mode:"
+  no_content "$HOME/.codex/agents/dev-reviewer.toml" "^tools"
+  plain_run --uninstall --agents codex --scope global --yes
+  absent "$HOME/.codex/agents/dev-reviewer.toml"
+}
+
+test_codex_models_prompt_overrides_one_model() {
+  mkdir -p "$HOME/.codex"
+  # confirmation, then codex's model questions: Enter through default,
+  # dev-fact-finder, dev-builder-check, dev-implementer, type the
+  # dev-reviewer override, Enter through dev-verifier — then Enter through
+  # the five effort questions.
+  tty_run 'y\n\n\n\n\nopenai/gpt-6-luna\n\n\n\n\n\n\n' --agents codex --scope global
+  content "$HOME/.codex/agents/dev-reviewer.toml" '^model = "openai/gpt-6-luna"$'
+  content "$HOME/.codex/agents/dev-implementer.toml" '^model = "gpt-6\.2-sol"$'
+}
+
+test_codex_still_installs_no_markdown_agents() {
+  plain_run --agents codex --scope global --yes
+  absent "$HOME/.codex/agents/dev-reviewer.md"
+  plain_run --uninstall --agents codex --scope global --yes
+  absent "$HOME/.codex/agents"
+}
+
+test_agents_dir_with_foreign_content_left_alone() {
+  mkdir -p "$HOME/.omp"
+  mkdir -p "$HOME/.omp/agent/agents"
+  echo "not ours" > "$HOME/.omp/agent/agents/dev-reviewer.md"
+  plain_run --agents pi --scope global --yes
+  grep -q "not ours" "$HOME/.omp/agent/agents/dev-reviewer.md"
+  saw "isn't a dev-workflow agent"
+  [ ! -f "$HOME/.omp/agent/agents/dev-fact-finder.md" ] && fail "other agents not installed alongside a foreign one"
+}
+
+test_users_own_agent_with_a_plain_role_name_is_untouched() {
+  mkdir -p "$HOME/.claude/agents"
+  printf -- '---\nname: reviewer\ndescription: mine\n---\nmy own reviewer\n' > "$HOME/.claude/agents/reviewer.md"
+  plain_run --agents claude --scope global --yes
+  not_saw "isn't a dev-workflow agent"
+  content "$HOME/.claude/agents/reviewer.md" "^my own reviewer$"
+  exists "$HOME/.claude/agents/dev-reviewer.md"
+  plain_run --uninstall --agents claude --scope global --yes
+  content "$HOME/.claude/agents/reviewer.md" "^my own reviewer$"
+  absent "$HOME/.claude/agents/dev-reviewer.md"
+}
+
+test_agent_we_installed_is_refreshed_on_a_second_install() {
+  printf '[claude-code]\ndefault = "first"\n' > "$CASE/one.toml"
+  printf '[claude-code]\ndefault = "second"\n' > "$CASE/two.toml"
+  plain_run --agents claude --scope global --models "$CASE/one.toml" --yes
+  content "$HOME/.claude/agents/dev-reviewer.md" "^model: first$"
+  plain_run --agents claude --scope global --models "$CASE/two.toml" --yes
+  content "$HOME/.claude/agents/dev-reviewer.md" "^model: second$"
+  not_saw "isn't a dev-workflow agent"
+}
+
+test_models_file_with_comments_installs_the_agents() {
+  printf '# mine\n[claude-code]  # pinned\ndefault = "m"  # everywhere\n' > "$CASE/models.toml"
+  plain_run --agents claude --scope global --models "$CASE/models.toml" --yes
+  status_is 0
+  content "$HOME/.claude/agents/dev-reviewer.md" "^model: m$"
+  content "$HOME/.claude/agents/dev-verifier.md" "^model: m$"
+}
+
+test_agents_that_cannot_be_built_fail_the_install() {
+  printf '[claude-code]\ndefault = unquoted\n' > "$CASE/models.toml"
+  plain_run --agents claude --scope global --models "$CASE/models.toml" --yes
+  status_is 1
+  saw "5 dispatch agents could not be built"
+  not_saw "0 agents"
+  absent "$HOME/.claude/agents/dev-reviewer.md"
+  exists "$HOME/.claude/skills/dev-debug"
+  saw "router block"
+}
+
+test_models_file_skips_the_model_questions() {
+  printf '[claude-code]\ndefault = "m"\n' > "$CASE/models.toml"
+  tty_run 'y\n' --agents claude --scope global --models "$CASE/models.toml"
+  not_saw "Models for claude-code"
+  content "$HOME/.claude/agents/dev-reviewer.md" "^model: m$"
+}
+
+test_models_file_that_does_not_exist_is_refused() {
+  plain_run --agents claude --scope global --models "$CASE/missing.toml" --yes
+  status_is 1
+  saw "no such file"
+  absent "$HOME/.claude/agents"
+}
+
+# A PATH that holds every tool of /usr/bin and /bin except python3.
+no_python3() {
+  local dir="$CASE/nopython" tool
+  mkdir -p "$dir"
+  for tool in /usr/bin/* /bin/*; do
+    [ "${tool##*/}" = python3 ] || ln -sf "$tool" "$dir/${tool##*/}"
+  done
+  PATH="$dir"
+}
+
+test_failed_rebuild_keeps_the_agents_already_installed() {
+  plain_run --agents claude --scope global --yes
+  content "$HOME/.claude/agents/dev-reviewer.md" "^model: claude-opus-5-5$"
+  printf '[claude-code]\ndefault = unquoted\n' > "$CASE/models.toml"
+  plain_run --agents claude --scope global --models "$CASE/models.toml" --yes
+  status_is 1
+  content "$HOME/.claude/agents/dev-reviewer.md" "^model: claude-opus-5-5$"
+  [ "$(ls -A "$HOME/.claude/agents" | wc -l | tr -d ' ')" = 5 ] || fail "agents dir holds more or fewer than the 5 agents"
+}
+
+test_a_model_answer_with_spaces_is_asked_again() {
+  # confirmation, Enter through default, "gpt 5" for dev-fact-finder (refused),
+  # then g5, then Enter through the four other models and the five efforts.
+  tty_run 'y\n\ngpt 5\ng5\n\n\n\n\n\n\n\n\n\n' --agents claude --scope global
+  saw "no spaces"
+  status_is 0
+  content "$HOME/.claude/agents/dev-fact-finder.md" "^model: g5$"
+  content "$HOME/.claude/agents/dev-reviewer.md" "^model: claude-opus-5-5$"
+}
+
+test_a_model_answer_is_not_expanded_as_a_glob() {
+  : > "$PROJECT/claude-code:dev-fact-finder=g5"
+  tty_run 'y\n\ng*\n\n\n\n\n\n\n\n\n\n' --agents claude --scope global
+  content "$HOME/.claude/agents/dev-fact-finder.md" '^model: g\*$'
+}
+
+test_missing_python3_stops_the_install_before_anything_is_written() {
+  no_python3
+  plain_run --agents claude --scope global --yes
+  status_is 1
+  saw "python3 is required"
+  absent "$HOME/.claude"
+}
+
+test_unreadable_models_table_stops_the_model_questions() {
+  mkdir -p "$CASE/src/tests"
+  cp -R "$here/../install.sh" "$here/../router.md" "$here/../skills" "$here/../agents" "$CASE/src/"
+  cp "$here/frontmatter.py" "$CASE/src/tests/"
+  printf '[claude-code]\ndefault = unquoted\n' > "$CASE/src/agents/models.toml"
+  local saved="$installer"
+  installer="$CASE/src/install.sh"
+  tty_run 'y\n' --agents claude --scope global
+  installer="$saved"
+  status_is 1
+  saw "couldn't read"
+  absent "$HOME/.claude/agents"
 }
 
 # --- runner -----------------------------------------------------------------

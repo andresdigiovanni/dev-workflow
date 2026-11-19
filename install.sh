@@ -40,6 +40,13 @@ SCOPE=""
 PROJECT_DIR="$(pwd)"
 ASSUME_YES=0
 AGENTS_ARG=""
+MODELS_OVERRIDE=""
+# Model and effort answers, one "table:role=value" entry each (table: a
+# harness, or "<harness>.effort"); passed to the builder as --set over
+# agents/models.toml.
+MODEL_CHOICES=()
+# Dispatch agents the installer could not build; any makes the install fail.
+AGENT_FAILURES=0
 
 # ---------------------------------------------------------------------------
 # Output helpers
@@ -79,6 +86,10 @@ Options:
   --dir PATH         Project directory for --scope project. Defaults to
                      the current directory.
   --ref REF          Branch or tag to install from (default: ${REF}).
+  --models PATH      Replace agent models and efforts with a models.toml of
+                     your own (same shape as agents/models.toml).
+                     Interactively, each model and each effort can also be
+                     overridden per harness.
   --uninstall, -u    Remove the skills and the router block that this
                      script previously installed. Does not touch anything
                      else in the target instruction file.
@@ -96,6 +107,49 @@ EOF
 }
 
 # ---------------------------------------------------------------------------
+# Model choices: list agents/models.toml per selected harness, ask, keep the
+# answers for the builder. tests/frontmatter.py is the only reader of the file.
+# ---------------------------------------------------------------------------
+
+# ask_choices <harness> <model|effort> — one question per role in that
+# harness's model table, or in its effort table.
+ask_choices() {
+  local harness="$1" kind="$2" table label role default input pairs
+  if [ "$kind" = effort ]; then table="$harness.effort"; label="Effort"
+  else table="$harness"; label="Models"; fi
+  pairs="$(python3 "$FRONTMATTER_SCRIPT" --table "$AGENTS_SRC/models.toml" "$table")" \
+    || die "couldn't read $AGENTS_SRC/models.toml"
+  [ -n "$pairs" ] || return 0
+  echo
+  echo "$label for $harness — Enter keeps the default:"
+  while IFS== read -r role default <&3; do
+    while :; do
+      printf '  %-14s [%s]: ' "$role" "$default"
+      prompt_read input || return 1
+      case "$input" in
+        *[[:space:]]*) warn "no spaces in a model or effort — try again" ;;
+        *) break ;;
+      esac
+    done
+    [ -z "$input" ] || MODEL_CHOICES+=("$table:$role=$input")
+  done 3<<EOF
+$pairs
+EOF
+  return 0
+}
+
+choose_models() {
+  local target agent harness
+  for target in "${TARGETS[@]}"; do
+    agent="${target%%:*}"
+    harness="$(agents_harness_for "$agent")"
+    [ -n "$harness" ] || continue
+    ask_choices "$harness" model || return 1
+    ask_choices "$harness" effort || return 1
+  done
+}
+
+# ---------------------------------------------------------------------------
 # Argument parsing
 # ---------------------------------------------------------------------------
 
@@ -110,6 +164,8 @@ while [ $# -gt 0 ]; do
     --dir=*) PROJECT_DIR="${1#*=}" ;;
     --ref) REF="${2:-}"; shift ;;
     --ref=*) REF="${1#*=}" ;;
+    --models) MODELS_OVERRIDE="${2:-}"; shift ;;
+    --models=*) MODELS_OVERRIDE="${1#*=}" ;;
     --yes|-y) ASSUME_YES=1 ;;
     --help|-h) usage; exit 0 ;;
     *) die "unknown option: $1 (see --help)" ;;
@@ -142,6 +198,8 @@ resolve_source() {
     if [ -d "$dir/skills" ] && [ -f "$dir/router.md" ]; then
       SKILLS_SRC="$dir/skills"
       ROUTER_SRC="$dir/router.md"
+      AGENTS_SRC="$dir/agents"
+      FRONTMATTER_SCRIPT="$dir/tests/frontmatter.py"
       return
     fi
   fi
@@ -169,6 +227,8 @@ fetch_release() {
 
   SKILLS_SRC="$extracted/skills"
   ROUTER_SRC="$extracted/router.md"
+  AGENTS_SRC="$extracted/agents"
+  FRONTMATTER_SCRIPT="$extracted/tests/frontmatter.py"
   [ -d "$SKILLS_SRC" ] && [ -f "$ROUTER_SRC" ] \
     || die "fetched ${REPO}@${REF} but it doesn't look like dev-workflow (missing skills/ or router.md)"
 }
@@ -389,6 +449,33 @@ skills_dir_for() {
   esac
 }
 
+# Dispatch-role agent files: one canonical source directory, one harness
+# key. The installed frontmatter is built from the canonical file's scoped
+# lines (tests/frontmatter.py); the body passes through unchanged. Codex CLI
+# gets a TOML custom-agent file instead: the body becomes
+# developer_instructions, the model the file's `model` key.
+agents_harness_for() {
+  case "$1" in
+    claude)   echo "claude-code" ;;
+    opencode) echo "opencode" ;;
+    pi)       echo "omp" ;;
+    codex)    echo "codex" ;;
+  esac
+}
+
+agents_dir_for() {
+  case "$1:$2" in
+    claude:global)    echo "$HOME/.claude/agents" ;;
+    claude:project)   echo "$PROJECT_DIR/.claude/agents" ;;
+    opencode:global)  echo "$HOME/.config/opencode/agents" ;;
+    opencode:project) echo "$PROJECT_DIR/.opencode/agents" ;;
+    pi:global)        echo "$(pi_agent_dir)/agents" ;;
+    pi:project)       echo "$PROJECT_DIR/.omp/agents" ;;
+    codex:global)     echo "$HOME/.codex/agents" ;;
+    codex:project)    echo "$PROJECT_DIR/.codex/agents" ;;
+  esac
+}
+
 instruction_file_for() {
   case "$1:$2" in
     claude:global)    echo "$HOME/.claude/CLAUDE.md" ;;
@@ -453,6 +540,78 @@ remove_skill() {
     return
   fi
   rm -rf "$dest"
+}
+
+# A dispatch-agent destination is "ours" if it doesn't exist yet or its
+# frontmatter declares the role's name — same rule as a skill's. The roles
+# carry the dev- prefix, as the skills do, so a user's own agent doesn't
+# share the name.
+agent_is_ours() {
+  local dest="$1" name="$2"
+  [ -e "$dest" ] || [ -L "$dest" ] || return 0
+  [ -f "$dest" ] || return 1
+  grep -qE "^name: *${name}\$" "$dest" 2>/dev/null && return 0
+  grep -qE "^name = \"${name}\"\$" "$dest" 2>/dev/null
+}
+
+install_agents() {
+  local target_dir="$2" harness="$3" script="$4" file name built=0
+  local ext sources=("$AGENTS_SRC"/*.md) tmp
+  ext=$([ "$harness" = codex ] && echo toml || echo md)
+  [ -d "$AGENTS_SRC" ] || return 0
+  if [ ! -f "$script" ]; then
+    warn "frontmatter builder missing at $script — skipped"
+    AGENT_FAILURES=$((AGENT_FAILURES + ${#sources[@]}))
+    return 0
+  fi
+  local models_args=() set_args=() choice
+  [ -f "$MODELS_FILE" ] && models_args=("$MODELS_FILE")
+  for choice in ${MODEL_CHOICES[@]+"${MODEL_CHOICES[@]}"}; do set_args+=(--set "$choice"); done
+  mkdir -p "$target_dir"
+  for file in "${sources[@]}"; do
+    [ -f "$file" ] || continue
+    name="$(basename "$file" .md)"
+    [ "$name" = models ] && continue
+    if [ -e "$target_dir/$name.$ext" ] || [ -L "$target_dir/$name.$ext" ]; then
+      if ! agent_is_ours "$target_dir/$name.$ext" "$name"; then
+        warn "$target_dir/$name.$ext already exists and isn't a dev-workflow agent — skipped"
+        continue
+      fi
+    fi
+    # Build beside the destination and move it over only on success: a failed
+    # build must leave the agent already installed alone.
+    tmp="$(mktemp "$target_dir/.$name.XXXXXX")"
+    TMP_PATHS+=("$tmp")
+    if python3 "$script" "$file" "$harness" "${models_args[@]}" ${set_args[@]+"${set_args[@]}"} \
+         > "$tmp" && [ -s "$tmp" ]; then
+      chmod 644 "$tmp"
+      mv -f "$tmp" "$target_dir/$name.$ext"
+      built=$((built + 1))
+    else
+      warn "couldn't build $name for $harness — skipped"
+      rm -f "$tmp"
+      AGENT_FAILURES=$((AGENT_FAILURES + 1))
+    fi
+  done
+  BUILT_AGENTS=$built
+}
+
+remove_agents() {
+  local target_dir="$2" file name
+  [ -d "$AGENTS_SRC" ] || return 0
+  for file in "$AGENTS_SRC"/*.md; do
+    [ -f "$file" ] || continue
+    name="$(basename "$file" .md)"
+    [ "$name" = models ] && continue
+    for ext in toml md; do
+      [ -e "$target_dir/$name.$ext" ] || [ -L "$target_dir/$name.$ext" ] || continue
+      if ! agent_is_ours "$target_dir/$name.$ext" "$name"; then
+        warn "$target_dir/$name.$ext doesn't look like a dev-workflow agent — left in place"
+        continue
+      fi
+      rm -f "$target_dir/$name.$ext"
+    done
+  done
 }
 
 # ---------------------------------------------------------------------------
@@ -577,7 +736,7 @@ router_action() {
 }
 
 print_plan() {
-  local target agent scope label skills_dir instr_file action i
+  local target agent scope label skills_dir instr_file action agents_dir agents_src i
   local -a files=() labels=()
   echo
   echo "Plan:"
@@ -600,6 +759,19 @@ print_plan() {
 
     printf '  %s (%s)\n' "$label" "$scope"
     printf '    skills  %-40s %s\n' "$skills_dir" "$(skills_action "$skills_dir")"
+    agents_dir="$(agents_dir_for "$agent" "$scope")"
+    agents_harness="$(agents_harness_for "$agent")"
+    if [ -n "$agents_dir" ]; then
+      if [ "$MODE" = install ]; then
+        if [ -n "$agents_harness" ] && ls "$AGENTS_SRC"/*.md >/dev/null 2>&1; then
+          printf '    agents  %-40s %s\n' "$agents_dir" "$(ls "$AGENTS_SRC"/*.md | wc -l | tr -d ' ') agent files"
+        else
+          printf '    agents  %-40s %s\n' "$agents_dir" "none shipped for this agent"
+        fi
+      else
+        printf '    agents  %-40s %s\n' "$agents_dir" "remove agent files"
+      fi
+    fi
     printf '    router  %-40s %s\n' "$instr_file" "$action"
   done
 }
@@ -744,6 +916,12 @@ if [ "${#TARGETS[@]}" -eq 0 ]; then
   for agent in "${SELECTED_AGENTS[@]}"; do TARGETS+=("$agent:$SCOPE"); done
 fi
 
+# The dispatch agents are built by python3: without it, stop before writing
+# anything rather than after the skills are in.
+if [ "$MODE" = install ] && [ -d "$AGENTS_SRC" ] && ! command -v python3 >/dev/null 2>&1; then
+  die "python3 is required to build the dispatch agents — install it and run again"
+fi
+
 echo
 info "${BOLD}dev-workflow${RESET} — ${MODE}"
 print_plan
@@ -753,6 +931,19 @@ if [ "$MODE" = install ]; then
 else
   [ "$ASSUME_YES" = 1 ] || can_prompt || die "no terminal to confirm on — pass --yes"
   confirm "Proceed?" n || { info "aborted"; exit 1; }
+fi
+
+# Model and effort overrides: --models replaces the shipped table wholesale;
+# else, on a terminal, ask per selected harness — every model, then every
+# effort — with the shipped values as defaults; Enter keeps each one. Asked
+# after the plan is confirmed; --yes, --models, an uninstall and
+# non-interactive runs skip the questions.
+MODELS_FILE="$AGENTS_SRC/models.toml"
+if [ "$MODE" = install ] && [ -n "$MODELS_OVERRIDE" ]; then
+  [ -f "$MODELS_OVERRIDE" ] || die "--models: no such file: $MODELS_OVERRIDE"
+  MODELS_FILE="$MODELS_OVERRIDE"
+elif [ "$MODE" = install ] && [ "$ASSUME_YES" != 1 ] && can_prompt; then
+  choose_models || die "no input available — pass --yes to skip the model and effort questions"
 fi
 
 # De-duplicate instruction files: codex and opencode share AGENTS.md when
@@ -780,6 +971,14 @@ if [ "$MODE" = "install" ]; then
     done
     ok "${#SKILL_NAMES[@]} skills → $target_skills_dir"
 
+    target_agents_dir="$(agents_dir_for "$agent" "$scope")"
+    target_agents_harness="$(agents_harness_for "$agent")"
+    if [ -n "$target_agents_dir" ] && [ -n "$target_agents_harness" ]; then
+      BUILT_AGENTS=0
+      install_agents "" "$target_agents_dir" "$target_agents_harness" "$FRONTMATTER_SCRIPT"
+      if [ "$BUILT_AGENTS" -gt 0 ]; then ok "$BUILT_AGENTS agents → $target_agents_dir"; fi
+    fi
+
     instr_file="$(instruction_file_for "$agent" "$scope")"
     if already_processed "$instr_file"; then
       ok "router block already written to $instr_file"
@@ -791,6 +990,9 @@ if [ "$MODE" = "install" ]; then
   done
 
   echo
+  if [ "$AGENT_FAILURES" -gt 0 ]; then
+    die "$AGENT_FAILURES dispatch agents could not be built — skills and router blocks were installed; see the warnings above"
+  fi
   info "Done. Every skill folder was copied — this install has no dependency"
   info "on GitHub or on this script from here on. Re-run any time to update:"
   info "installing again replaces the skills and the router block in place"
@@ -814,6 +1016,14 @@ else
       rmdir "$target_skills_dir" 2>/dev/null || true
       [ "$scope" = project ] && { rmdir "$(dirname "$target_skills_dir")" 2>/dev/null || true; }
       ok "skills removed from $target_skills_dir"
+    fi
+
+    target_agents_dir="$(agents_dir_for "$agent" "$scope")"
+    target_agents_harness="$(agents_harness_for "$agent")"
+    if [ -n "$target_agents_dir" ] && [ -n "$target_agents_harness" ]; then
+      remove_agents "" "$target_agents_dir" "$target_agents_harness"
+      rmdir "$target_agents_dir" 2>/dev/null || true
+      ok "agents removed from $target_agents_dir"
     fi
 
     instr_file="$(instruction_file_for "$agent" "$scope")"

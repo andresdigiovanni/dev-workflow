@@ -122,7 +122,7 @@ Fix inline and move on. No second pass.
 
 ## Builder check
 
-Then read `references/builder-check.md` and run it: a fresh sub-agent reads spec and plan as an implementer who can't ask, and returns the questions a wrong guess would cost.
+Then read `references/builder-check.md` and run it: dispatch to the `dev-builder-check` agent when one is defined, else a fresh sub-agent, else *Without sub-agents* — none of your session history — reads spec and plan as an implementer who can't ask, and returns the questions a wrong guess would cost.
 
 ## Handoff
 

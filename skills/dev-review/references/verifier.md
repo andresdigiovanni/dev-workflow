@@ -10,7 +10,7 @@ Read this before dispatching verifiers, and again before consolidating.
 
 ## The brief
 
-Dispatch one fresh verifier per reviewer's report that has findings. Each verifier has none of the session's history, so what it is given is the brief below and nothing else.
+Dispatch one fresh verifier per reviewer's report that has findings — the `dev-verifier` agent when one is defined, else a fresh sub-agent, else *Without sub-agents*. Each verifier has none of the session's history, so what it is given is the brief below and nothing else.
 
 Fill the placeholders. `<code>` is the absolute path of the directory holding the code at head, `<repo>` the absolute path of its git repository (`none` without git), `<diff command>` the command that prints the change, runnable from any directory, `<origin>` is `own` or `foreign` as the target step decided, and `<output>` the temporary directory.
 

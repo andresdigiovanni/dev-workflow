@@ -76,7 +76,7 @@ Resuming, by the task's last line:
 
 ## Per task
 
-**1. Dispatch a fresh implementer.**
+**1. Dispatch a fresh implementer** — the `dev-implementer` agent when one is defined, else a fresh sub-agent, else *Without sub-agents*.
 
 Write its brief to `task-N-brief.md` — exactly this, constructed on purpose — and dispatch it with that path:
 
@@ -91,7 +91,7 @@ Write its brief to `task-N-brief.md` — exactly this, constructed on purpose �
 - the instruction that a public surface its `Interfaces` block doesn't list, or a dependency the plan doesn't name, is not its to add: stop, report `blocked`, and name it
 - the instruction to dispatch no sub-agents — no helpers and no reviewer: the review comes from you, after its report
 - the instruction to change only what its task lists — no refactors, renames or fixes outside it; anything it noticed goes under `Follow-ups`
-- the instruction to report in the shape below, to `task-N-report.md`
+- the report shape below, verbatim, and the instruction to write the report to `task-N-report.md`
 
 It gets **none of your session history**. That isolation is the whole reason delegation works — inherited context is how a sub-agent drifts onto work that isn't its own.
 
@@ -148,15 +148,16 @@ Resuming: a slice whose tasks are all `complete` but that has no `verified` line
 
 ## Model selection
 
-| Task shape | Model |
-|---|---|
-| Mechanical, isolated, clear spec, 1-2 files | fast |
-| Integration, pattern matching, judgment | mid |
-| Review | most capable available |
-| Fix round 1 | the implementer's own — resumed, or fresh at the same tier |
-| Fix round 2 | one tier above round 1, up to the most capable |
+Which model each dispatch runs on is pinned by the agent file of the role it names — `dev-implementer` here, `dev-reviewer` and `dev-verifier` in `dev-review`, `dev-fact-finder` in `dev-explore`, `dev-builder-check` in `dev-plan`. One agent file per role, per harness; edit the model there, not here.
 
-Say which model you're dispatching with; an unspecified model is a silent default.
+| Dispatch | Role agent |
+|---|---|
+| Implementation, whatever the task's shape | `dev-implementer` |
+| Review | `dev-reviewer` |
+| Fix round 1 | the implementer's own — resumed, or a fresh `dev-implementer` |
+| Fix round 2 | the `dev-implementer` on a model one tier above round 1, up to the most capable — override the agent's model for this dispatch |
+
+No agent files are defined for the harness: pick by tier — fast for mechanical, isolated tasks of 1-2 files, mid for integration and judgment, most capable available for review and fix round 2 — and say which you're dispatching with; an unspecified model is a silent default.
 
 ## Without sub-agents
 

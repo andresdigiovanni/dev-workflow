@@ -6,7 +6,7 @@ You wrote the plan, so its gaps are the ones you can't see. A reader who can't a
 
 ## The brief
 
-Dispatch one fresh sub-agent — none of your session history — with the spec and plan paths and this:
+Dispatch to the `dev-builder-check` agent when one is defined, else one fresh sub-agent, else *Without sub-agents* — none of your session history — with the spec and plan paths and this:
 
 > You will implement these tasks one at a time, reading only your own task, and you cannot ask anyone. Start with a paraphrase, in a few sentences, of what the spec asks for and how the plan builds it. Then list only the questions where you would have to guess and a wrong guess changes what gets built, most important first, each with why the answer matters. Skip what the plan leaves to the implementer, what you could reasonably decide yourself, and wording. If nothing important is left, say "nothing important left".
 

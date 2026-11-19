@@ -1,6 +1,6 @@
 # Reviewer briefs
 
-Each reviewer is a fresh sub-agent with none of the session's history, so its brief is the shared header followed by the part of its lens. At Small depth one reviewer gets the header followed by the four core parts in the order Correctness, Tests, Design, Intent, and tags each finding with its lens. Intent comes last so that `claims.md` is the last thing the single reviewer opens: the author's account then cannot steer the other parts. The Intent part is left out when both `intent.md` and `claims.md` are empty. A risk lens always gets a reviewer of its own.
+Each reviewer is a fresh sub-agent — the `dev-reviewer` agent when one is defined, else a fresh sub-agent, else *Without sub-agents* — with none of the session's history, so its brief is the shared header followed by the part of its lens. At Small depth one reviewer gets the header followed by the four core parts in the order Correctness, Tests, Design, Intent, and tags each finding with its lens. Intent comes last so that `claims.md` is the last thing the single reviewer opens: the author's account then cannot steer the other parts. The Intent part is left out when both `intent.md` and `claims.md` are empty. A risk lens always gets a reviewer of its own.
 
 ## Contents
 

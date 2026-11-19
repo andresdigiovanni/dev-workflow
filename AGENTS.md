@@ -29,13 +29,15 @@ Keep that opening clause to a dozen words so the trigger words come right after 
 
 Frontmatter carries `name` and `description` and nothing else. The spec allows a few optional fields, but hosts handle them differently and some reject fields they don't know. `name` matches the folder: lowercase letters, digits and single hyphens, no hyphen at either end, at most 64 characters. `description` has no XML tags and stays under 1024 characters, the hard limit; aim for well under half that.
 
-## Portable by construction
+**Portable by construction**
 
 This set runs on more than one agent. Two rules keep it that way:
 
 **Never name a tool.** Write the action, not the mechanism: "dispatch a fresh sub-agent", not the name of a particular agent-spawning tool. "Read the file", not the name of a read tool. "Record it in the ledger", not the name of a todo system.
 
 **Every delegating skill carries a `## Without sub-agents` section** — in its `SKILL.md`, or in the reference that holds the delegation — three lines on how to get the same result in one pass, and what context to exclude by hand.
+
+**Dispatch agents are canonical files with scoped frontmatter.** One file per role under `agents/` — model and a thin contract, never process (the skills hold the process; no harness exposes its skill catalog to every sub-agent). The `model` line carries the `<model>` placeholder; the installer fills it from `agents/models.toml` — the role's entry for the harness being installed, else that harness's `default` — so the same source installs a different model per harness, and every harness ends up covered (the linter checks the placeholder resolves everywhere). The `effort` line carries the `<effort>` placeholder the same way, filled from the role's entry in that file's `[<harness>.effort]` table; a role with no entry gets no effort line, and the linter checks every role has one under every harness. Field names and shapes stay the harness's own where they differ: `effort` renders as omp's `thinking-level` and joins opencode's `model` as a `#variant` (`model: openai/gpt-5` + `effort: high` → `model: openai/gpt-5#high`); `mode` renders only for opencode; `tools` only for omp and claude-code. `agents/*.md` are source: the installed frontmatter is built from them, never copied.
 
 Paths stay neutral: `docs/specs/`, `docs/plans/`, `.dev-runs/`. Nothing under an agent-specific directory.
 

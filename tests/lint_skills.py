@@ -14,6 +14,8 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 MAX_WORDS = 1600
 MAX_DESCRIPTION = 1024
 NAME = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
@@ -73,6 +75,7 @@ def lint(root):
     skills_dir = os.path.join(root, "skills")
     skills = sorted(os.path.basename(os.path.dirname(p))
                     for p in glob.glob(os.path.join(skills_dir, "*", "SKILL.md")))
+    roles = {os.path.basename(p)[:-3] for p in glob.glob(os.path.join(root, "agents", "*.md"))}
     lanes = set(re.findall(r"^\| \*\*(\w+)\*\* \|", read(router), re.M))
 
     for name in skills:
@@ -113,7 +116,7 @@ def lint(root):
                 flag(path, n, "tool-name", f"{m.group(0)}: write the action, not the tool")
         for n, line in prose(read(path)):
             for skill in SKILL.findall(line):
-                if skill not in skills:
+                if skill not in skills and skill not in roles:
                     flag(path, n, "reference", f"no skill `{skill}`")
             for skill, ref_file, is_router, ref, chain in SECTION.findall(line):
                 target = router if is_router else \
@@ -145,6 +148,71 @@ def lint(root):
                     continue
                 for ref in re.findall(r"\*([^*]+)\*", clause):
                     check(path, n, target, ref)
+
+    # Canonical dispatch-role agent files: agents/<role>.md, one per role.
+    # Same rules as a skill's — name, description, no tool names — plus the
+    # frontmatter contract: exactly one `model: <model>` placeholder line,
+    # and it resolves in agents/models.toml for every harness (the role's
+    # entry, else that harness's default); an `effort: <effort>` line
+    # resolves to the role's entry in every harness's effort table.
+    harnesses = ("omp", "opencode", "claude-code", "codex")
+    models_path = os.path.join(root, "agents", "models.toml")
+    models = {}
+    if os.path.isfile(models_path):
+        from frontmatter import parse_models
+        models = parse_models(models_path)
+    for path in sorted(glob.glob(os.path.join(root, "agents", "*.md"))):
+        role = os.path.basename(path)[:-3]
+        if role == "models":
+            continue
+        lines = read(path).splitlines()
+        end = lines.index("---", 1) if lines[:1] == ["---"] and "---" in lines[1:] else 0
+        if not end:
+            flag(path, 1, "frontmatter", "no --- block at the top")
+            continue
+        fields = []
+        model_lines = 0
+        for n in range(2, end + 1):
+            key, _, value = lines[n - 1].partition(":")
+            key = key.strip()
+            value = value.strip()
+            if key == "model":
+                model_lines += 1
+                if value != "<model>":
+                    flag(path, n, "model", f"{value!r}: write the <model> placeholder")
+                else:
+                    missing = [h for h in harnesses
+                               if not ((h, role) in models or (h, "default") in models)]
+                    if missing:
+                        flag(path, n, "model",
+                             f"no models.toml entry for {role} under {', '.join(missing)}")
+            elif key == "effort":
+                if value != "<effort>":
+                    flag(path, n, "effort", f"{value!r}: write the <effort> placeholder")
+                else:
+                    missing = [h for h in harnesses
+                               if (f"{h}.effort", role) not in models]
+                    if missing:
+                        flag(path, n, "effort",
+                             f"no models.toml effort entry for {role} under {', '.join(missing)}")
+            fields.append((key, (n, value)))
+        if not model_lines:
+            flag(path, 1, "model", "no model: <model> line")
+        for key, (n, value) in fields:
+            if not value and key != "name":
+                flag(path, n, "frontmatter", f"{key}: empty")
+            if key == "description":
+                if len(value) > MAX_DESCRIPTION:
+                    flag(path, n, "description", f"{len(value)} characters, over {MAX_DESCRIPTION}")
+        n_name, n_value = next(((n, v) for k, (n, v) in fields if k == "name"),
+                               (1, ""))
+        if n_value != role or not NAME.fullmatch(role):
+            flag(path, n_name, "name",
+                 f"{n_value!r}: matches the file, lowercase letters, "
+                 "digits and single hyphens")
+        for n, line in enumerate(read(path).splitlines(), 1):
+            for m in TOOL.finditer(line):
+                flag(path, n, "tool-name", f"{m.group(0)}: write the action, not the tool")
     return found
 
 

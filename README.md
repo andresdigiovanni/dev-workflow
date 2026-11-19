@@ -7,11 +7,13 @@ A development workflow as seven portable skills: five phases and two support ski
 ```
 dev-workflow/
 ├── router.md          # the router: lanes, branching, terms, four global rules
-├── install.sh         # installs the skills and the router block
+├── install.sh         # installs the skills, the dispatch agents and the router block
 ├── README.md
 ├── AGENTS.md          # conventions and checks for editing this set — not installed
 ├── CLAUDE.md          # imports AGENTS.md, which Claude Code doesn't read on its own
 ├── evals/             scenarios that check the skills — not installed
+├── agents/            canonical dispatch-role agent files — model + contract
+│                          dev-fact-finder, dev-builder-check, dev-implementer, dev-reviewer, dev-verifier
 └── skills/
     ├── dev-explore/       analysis — facts in parallel, decisions in rounds
     ├── dev-plan/          spec → tasks with interface contracts
@@ -49,7 +51,22 @@ Around that path:
 curl -fsSL https://raw.githubusercontent.com/andresdigiovanni/dev-workflow/main/install.sh | bash
 ```
 
-This asks which agent(s) to configure — Claude Code, Codex CLI, OpenCode; the ones installed on your machine start selected, and you can type several at once (`1 3`, `claude,codex`) — and whether to install globally (your home directory) or into a project — the current directory, or a path you type. From your home directory only a typed path counts as a project. It then puts every skill where that agent looks for skills, and adds a block to that agent's instruction file (`CLAUDE.md` for Claude Code, `AGENTS.md` for Codex CLI and OpenCode) with the lanes and global rules from this repo's `router.md`.
+This asks which agent(s) to configure — Claude Code, Codex CLI, OpenCode; the ones installed on your machine start selected, and you can type several at once (`1 3`, `claude,codex`) — and whether to install globally (your home directory) or into a project — the current directory, or a path you type. From your home directory only a typed path counts as a project. It then puts every skill where that agent looks for skills, adds a block to that agent's instruction file (`CLAUDE.md` for Claude Code, `AGENTS.md` for Codex CLI and OpenCode) with the lanes and global rules from this repo's `router.md`, and installs the dispatch-role agents — `dev-fact-finder`, `dev-builder-check`, `dev-implementer`, `dev-reviewer`, `dev-verifier`, each pinning the model its role runs on — to that agent's agents directory (Claude Code: `.claude/agents/`; OpenCode: its agents directory; pi: the agent directory's `agents/`). Codex CLI gets its agents as TOML custom-agent files in its `agents/` directory — `.codex/agents/` — with the body as `developer_instructions`, the model as the file's `model` key, and the effort as `model_reasoning_effort`. The skills say to use these agents when they exist and fall back to plain sub-agents otherwise, so an install without them changes nothing.
+
+The files under `agents/` are canonical source, one per role, and are never installed as-is. The `model` line carries the `<model>` placeholder; the installer fills it from `agents/models.toml` — the role's entry for the harness being installed, else that harness's `default` — so the same source file installs a different model per harness. The `effort` line carries the `<effort>` placeholder, filled from the role's entry in the `[<harness>.effort]` table of the same file; a role with no entry gets no effort line. On a terminal the installer asks for each model of the selected harnesses, then each effort, one question per role, with the `models.toml` value as the default — Enter keeps it. `--models PATH` skips the questions and reads a `models.toml` of your own instead, its effort tables included. The other field names follow the harness that reads them. What the install renames, per harness:
+
+| Canonical | omp | opencode | Claude Code | Codex CLI |
+| --- | --- | --- | --- | --- |
+| `model: <model>` | `model: openai/gpt-6.2-sol` (models.toml) | `model: openai/gpt-6.2-sol` (models.toml) | `model: claude-opus-5-5` (models.toml) | `model = "gpt-6.2-sol"` (models.toml) |
+| `effort: <effort>` | `thinking-level: high` (models.toml) | — (joins the model) | `effort: high` (models.toml) | `model_reasoning_effort = "high"` (models.toml) |
+| — (implicit) | — | `model: openai/gpt-6.2-sol#high` | — | — |
+| `mode: subagent` | — | `mode: subagent` | — | — |
+| `tools: [read, grep]` | `tools: [read, grep]` | — (reads no tools field) | `tools: Read, Grep` | — (inherits the parent's) |
+| the body | system prompt | system prompt | system prompt | `developer_instructions = """…"""` |
+
+Codex agents are TOML files (`.codex/agents/<role>.toml`), not Markdown: the canonical frontmatter becomes `key = "value"` lines and the body a `developer_instructions` multiline string.
+
+Copying these files by hand installs nothing. Agent files carry the `dev-` prefix, like the skills, and the installer only replaces or removes a file whose `name:` is one of these roles: another file with the same name is left in place with a warning. Building the agents needs `python3`: without it the install stops before writing anything. If an agent still can't be built (a malformed `--models` file), the agent already installed is kept, the install finishes the skills and router block, then exits with an error naming how many agents failed. A model or effort typed at a question can't contain spaces; the question is asked again.
 
 Before writing anything it lists every directory and file it will touch, and what it will do to each, and asks to proceed. `--yes` skips the question; without a terminal the install proceeds after printing the list.
 
