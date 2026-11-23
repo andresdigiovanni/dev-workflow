@@ -542,11 +542,11 @@ test_existing_none_goes_to_the_menus() {
 
 test_models_prompt_overrides_one_model() {
   mkdir -p "$HOME/.omp"
-  # confirmation, then the omp model questions: Enter through default,
-  # dev-fact-finder, dev-builder-check, dev-implementer, type the
-  # dev-reviewer override, Enter through dev-verifier — then Enter through
-  # the five effort questions.
-  tty_run 'y\n\n\n\n\nopenai/gpt-6-luna\n\n\n\n\n\n\n' --agents pi --scope global
+  # confirmation, then the omp questions, interleaved per agent: Enter
+  # through default, dev-fact-finder, dev-builder-check, dev-implementer,
+  # type the dev-reviewer override, Enter its effort and through
+  # dev-verifier's model and effort.
+  tty_run 'y\n\n\n\n\n\n\n\nopenai/gpt-6-luna\n\n\n\n\n' --agents pi --scope global
   content "$HOME/.omp/agent/agents/dev-reviewer.md" "^model: openai/gpt-6-luna$"
   content "$HOME/.omp/agent/agents/dev-implementer.md" "^model: openai/gpt-6.2-sol$"
   content "$HOME/.omp/agent/agents/dev-fact-finder.md" "^model: openai/gpt-6-luna$"
@@ -554,11 +554,12 @@ test_models_prompt_overrides_one_model() {
 
 test_effort_prompt_overrides_one_effort() {
   mkdir -p "$HOME/.omp"
-  # confirmation, the six omp model questions, then the five effort
-  # questions: Enter through dev-fact-finder, dev-builder-check,
-  # dev-implementer, type an override for dev-reviewer and for dev-verifier
-  # — two, so a first override must survive the second.
-  tty_run 'y\n\n\n\n\n\n\n\n\n\nxhigh\nmax\n' --agents pi --scope global
+  # confirmation, the omp questions interleaved per agent: Enter through
+  # default, dev-fact-finder's model and effort, dev-builder-check's,
+  # dev-implementer's, dev-reviewer's model, type its effort override,
+  # dev-verifier's model, type its effort override — two, so a first
+  # override must survive the second.
+  tty_run 'y\n\n\n\n\n\n\n\n\nxhigh\n\nmax\n' --agents pi --scope global
   content "$HOME/.omp/agent/agents/dev-reviewer.md" "^thinking-level: xhigh$"
   content "$HOME/.omp/agent/agents/dev-verifier.md" "^thinking-level: max$"
   content "$HOME/.omp/agent/agents/dev-implementer.md" "^thinking-level: high$"
@@ -633,11 +634,11 @@ test_codex_agents_install_global_toml() {
 
 test_codex_models_prompt_overrides_one_model() {
   mkdir -p "$HOME/.codex"
-  # confirmation, then codex's model questions: Enter through default,
-  # dev-fact-finder, dev-builder-check, dev-implementer, type the
-  # dev-reviewer override, Enter through dev-verifier — then Enter through
-  # the five effort questions.
-  tty_run 'y\n\n\n\n\nopenai/gpt-6-luna\n\n\n\n\n\n\n' --agents codex --scope global
+  # confirmation, then codex's questions, interleaved per agent: Enter
+  # through default, dev-fact-finder, dev-builder-check, dev-implementer,
+  # type the dev-reviewer override, Enter its effort and through
+  # dev-verifier's model and effort.
+  tty_run 'y\n\n\n\n\n\n\n\nopenai/gpt-6-luna\n\n\n\n\n' --agents codex --scope global
   content "$HOME/.codex/agents/dev-reviewer.toml" '^model = "openai/gpt-6-luna"$'
   content "$HOME/.codex/agents/dev-implementer.toml" '^model = "gpt-6\.2-sol"$'
 }

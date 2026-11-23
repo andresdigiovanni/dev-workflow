@@ -111,42 +111,61 @@ EOF
 # answers for the builder. tests/frontmatter.py is the only reader of the file.
 # ---------------------------------------------------------------------------
 
-# ask_choices <harness> <model|effort> — one question per role in that
-# harness's model table, or in its effort table.
-ask_choices() {
-  local harness="$1" kind="$2" table label role default input pairs
-  if [ "$kind" = effort ]; then table="$harness.effort"; label="Effort"
-  else table="$harness"; label="Models"; fi
-  pairs="$(python3 "$FRONTMATTER_SCRIPT" --table "$AGENTS_SRC/models.toml" "$table")" \
+# ask_roles <harness> — the model table's role=default pairs, one per line,
+# then the effort table's role=default pairs.
+ask_roles() {
+  local harness="$1" model_pairs effort_pairs
+  model_pairs="$(python3 "$FRONTMATTER_SCRIPT" --table "$AGENTS_SRC/models.toml" "$harness")" \
     || die "couldn't read $AGENTS_SRC/models.toml"
-  [ -n "$pairs" ] || return 0
-  echo
-  echo "$label for $harness — Enter keeps the default:"
-  while IFS== read -r role default <&3; do
-    while :; do
-      printf '  %-14s [%s]: ' "$role" "$default"
-      prompt_read input || return 1
-      case "$input" in
-        *[[:space:]]*) warn "no spaces in a model or effort — try again" ;;
-        *) break ;;
-      esac
-    done
-    [ -z "$input" ] || MODEL_CHOICES+=("$table:$role=$input")
-  done 3<<EOF
-$pairs
-EOF
+  effort_pairs="$(python3 "$FRONTMATTER_SCRIPT" --table "$AGENTS_SRC/models.toml" "$harness.effort")" \
+    || die "couldn't read $AGENTS_SRC/models.toml"
+  MODEL_PAIRS="$model_pairs"
+  EFFORT_PAIRS="$effort_pairs"
+}
+
+# ask_pair <table> <role> <default> <label> — one question, the answer kept
+# as a table:role=value override for the builder; empty keeps the default.
+ask_pair() {
+  local table="$1" role="$2" default="$3" label="$4" input
+  while :; do
+    printf '  %-14s %s [%s]: ' "$role" "$label" "$default"
+    prompt_read input || return 1
+    case "$input" in
+      *[[:space:]]*) warn "no spaces in a model or effort — try again" ;;
+      *) break ;;
+    esac
+  done
+  [ -z "$input" ] || MODEL_CHOICES+=("$table:$role=$input")
   return 0
 }
 
+# choose_models — per selected harness, one model question and one effort
+# question per agent, interleaved, so each agent is fully defined before the
+# next one starts; a role with no effort entry gets its model question only.
 choose_models() {
-  local target agent harness
+  local target agent harness role model_default effort_default
   for target in "${TARGETS[@]}"; do
     agent="${target%%:*}"
     harness="$(agents_harness_for "$agent")"
     [ -n "$harness" ] || continue
-    ask_choices "$harness" model || return 1
-    ask_choices "$harness" effort || return 1
+    ask_roles "$harness" || return 1
+    [ -n "$MODEL_PAIRS" ] || continue
+    echo
+    echo "Agents for $harness — model and effort — Enter keeps the default:"
+    while IFS== read -r role model_default <&3; do
+      ask_pair "$harness" "$role" "$model_default" "model" || return 1
+      effort_default="$(awk -F= -v r="$role" '$1 == r { print substr($0, length($1) + 2) }' <<EOF
+$EFFORT_PAIRS
+EOF
+)"
+      if [ -n "$effort_default" ]; then
+        ask_pair "$harness.effort" "$role" "$effort_default" "effort" || return 1
+      fi
+    done 3<<EOF
+$MODEL_PAIRS
+EOF
   done
+  return 0
 }
 
 # ---------------------------------------------------------------------------
@@ -934,8 +953,8 @@ else
 fi
 
 # Model and effort overrides: --models replaces the shipped table wholesale;
-# else, on a terminal, ask per selected harness — every model, then every
-# effort — with the shipped values as defaults; Enter keeps each one. Asked
+# else, on a terminal, ask per selected harness — per agent, its model and
+# then its effort — with the shipped values as defaults; Enter keeps each. Asked
 # after the plan is confirmed; --yes, --models, an uninstall and
 # non-interactive runs skip the questions.
 MODELS_FILE="$AGENTS_SRC/models.toml"
