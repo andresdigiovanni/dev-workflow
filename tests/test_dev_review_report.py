@@ -4,18 +4,22 @@ import review_helpers as helpers
 
 PATH = helpers.SKILL + "references/report.md"
 LABELS = [
-    "Change:", "Target:", "Depth: <Small | Standard>[, self-run]",
+    "Verdict: <Ready | Fix first: <numbers and failing checks> | Not settled: <what is open>>",
+    "Does what was asked: <yes | no: <numbers> | not checked: <why>>",
+    "Built right: <yes | no: <numbers> | not checked: <why>>",
+    "Change:", "Target: <repo> <range> — <n> files, <n> changed lines",
+    "Depth: <Small | Standard>[, self-run]",
+    "── Checks ──",
     "Suite: <command> → <result; pre-existing reds named> | not run: <why>",
     "Types/lint/build: <command> → <result> | none configured | not run: <why>",
     "Entry point: <command> → <what it showed> | n/a | not run: <why>",
     "Agent file: <no update | update: <path>:<line> → <what is true now> | "
     "proposed: <instruction — evidence — gain>>",
-    "Does what was asked: <yes | no: <numbers> | not checked: <why>>",
-    "Built right: <yes | no: <numbers> | not checked: <why>>",
-    "Verdict: <Ready | Fix first: <numbers and checks> | Not settled: <what is open>>",
-    "Critical", "Trigger: <...>", "Outcome: <...>", "Fix: <...>",
-    "Evidence: <reproduced | traced>", "Important", "Minor", "Needs checking:", "Pre-existing:",
-    "Refuted:", "Not checked:",
+    "── Findings ──",
+    "Critical", "[<lens or lenses>; <reproduced | traced>]", "Trigger: <...>", "Outcome: <...>",
+    "Fix: <...>", "Important", "Minor",
+    "── Unsettled ──",
+    "Needs checking:", "Pre-existing:", "Refuted:", "Not checked:",
 ]
 
 
@@ -45,12 +49,15 @@ class Report(unittest.TestCase):
                 "with no number", "when a lens failed", "lens that did not run, with why",
                 "never reads `yes`", "`Cannot verify from the diff`", "`Declined to judge`",
                 "from the reviewer's", "from the verifier's", "each line one of its lenses",
-                "at most one sentence", "verified by nobody", "tests left out",
+                "nothing before the opening fence", "verified by nobody", "tests left out",
                 "ends at the template's last line",
                 "that skill continues after the report", "`not run: foreign`",
                 "`references/checks.md`, *What a result does*",
                 "a command could not run on an own change",
-                "`<base>..<head> + uncommitted`", "`paths: <list>`"]:
+                "`<base>..<head> + uncommitted`", "`paths: <list>`",
+                "one `text` code block", "one entry per line", "indented two spaces",
+                "`── Checks ──`, `── Findings ──` and `── Unsettled ──` always stay",
+                "`No findings` under `── Findings ──`"]:
             self.assertIn(token, filling)
 
     def test_the_suite_has_its_own_line_and_no_note(self):

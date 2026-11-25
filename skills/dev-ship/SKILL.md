@@ -17,7 +17,7 @@ The router's *Trivial* lane runs from here.
 4. Trace every hunk to the request. Revert what traces to nothing.
 5. Search the instruction files for every path, command or name the diff changes. A hit is settled per `dev-review`'s `references/checks.md`, *Instruction files*, and nothing else of that skill: make the `update` it reports.
 6. Commit once, per *One task, one commit*.
-7. Report in three lines: `Checks:` each command → result, or `not run — docs only`; `Scope:` every hunk traced, reverted hunks listed; `Agent file:` no update, updated, or the proposal. There is no baseline on this lane, so a red test is reported red, not attributed.
+7. Report in three lines, in a `text` code block: `Checks:` each command → result, or `not run — docs only`; `Scope:` every hunk traced, reverted hunks listed; `Agent file:` as `dev-review`'s `references/report.md` fills it — `no update`, `update: <path>:<line> → <what is true now>`, or `proposed: <instruction — evidence — gain>`. There is no baseline on this lane, so a red test is reported red, not attributed.
 8. Integrate, per *Integrating*, then *Cleanup*.
 
 ## One task, one commit

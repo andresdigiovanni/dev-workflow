@@ -32,6 +32,7 @@ class Implement(unittest.TestCase):
                 "run `dev-review` again, over the paths the fixes touched",
                 "`dev-review`, *Checks*", "its report replaces the first",
                 "Two reviews at most", "Decisions:", "Follow-ups:", "Open:",
+                "in its own `text` code block",
                 "`references/delegated.md`, *Per task* and *After the last task*"]:
             self.assertIn(token, after)
         for token in ["Fixed:", "Checks now:", "changed more than its finding named"]:
@@ -82,6 +83,15 @@ class Ship(unittest.TestCase):
         self.assertIn(
             "`dev-review`'s `references/checks.md`, *Instruction files*, and nothing else",
             helpers.section(self.text, "Trivial lane"))
+
+    def test_the_trivial_lane_reports_the_agent_file_as_the_review_does(self):
+        lane = helpers.section(self.text, "Trivial lane")
+        template = helpers.read(helpers.SKILL + "references/report.md")
+        self.assertIn("in a `text` code block", lane)
+        for value in ["no update", "update: <path>:<line> → <what is true now>",
+                      "proposed: <instruction — evidence — gain>"]:
+            self.assertIn(value, lane)
+            self.assertIn(value, template)
 
     def test_integration_waits_for_the_verdict(self):
         self.assertIn(

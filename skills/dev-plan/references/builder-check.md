@@ -8,7 +8,11 @@ You wrote the plan, so its gaps are the ones you can't see. A reader who can't a
 
 Dispatch to the `dev-builder-check` agent when one is defined, else one fresh sub-agent, else *Without sub-agents* — none of your session history — with the spec and plan paths and this:
 
-> You will implement these tasks one at a time, reading only your own task, and you cannot ask anyone. Start with a paraphrase, in a few sentences, of what the spec asks for and how the plan builds it. Then list only the questions where you would have to guess and a wrong guess changes what gets built, most important first, each with why the answer matters. Skip what the plan leaves to the implementer, what you could reasonably decide yourself, and wording. If nothing important is left, say "nothing important left".
+> You will implement these tasks one at a time, reading only your own task, and you cannot ask anyone. Report in this shape and nothing beyond it:
+>
+> `Paraphrase:` what the spec asks for and how the plan builds it, in a few sentences.
+>
+> `Questions:` only the ones where you would have to guess and a wrong guess changes what gets built, most important first, one per line as `<n>. <question> — why it matters: <what a wrong guess changes>`. Skip what the plan leaves to the implementer, what you could reasonably decide yourself, and wording. If nothing important is left, write `Questions: nothing important left`.
 
 ## Sorting what comes back
 
@@ -16,7 +20,7 @@ Dispatch to the `dev-builder-check` agent when one is defined, else one fresh su
 - **Answered by the spec, the plan or the repo:** write the answer into the task that needed it.
 - **Minor** — a sensible implementer could settle it without changing what gets built: settle it in that task, marked as your call: `Decision: <what> — <why> — <cost if wrong>`.
 - **The user's** — only they can answer, and the answer changes what gets built: ask it at the handoff, per `dev-plan`, *Handoff*.
-- **Nothing, or no paraphrase** — a return without the paraphrase, or with neither questions nor `nothing important left`: the check didn't run. Dispatch it once more; empty again, run it per *Without sub-agents* and say so at the handoff.
+- **Nothing, or no paraphrase** — a return with no `Paraphrase:` line, or whose `Questions:` is neither numbered questions nor `nothing important left`: the check didn't run. Dispatch it once more; empty again, run it per *Without sub-agents* and say so at the handoff.
 
 ## Without sub-agents
 

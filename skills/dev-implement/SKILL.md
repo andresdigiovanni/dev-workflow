@@ -70,9 +70,9 @@ Commit each task per `dev-ship`, *One task, one commit*: in direct mode only the
 
 **After fixing**, in direct mode, run `dev-review` again, over the paths the fixes touched: a fix is a change like any other, and it makes the earlier report stale. Its checks run in full, per `dev-review`, *Checks*, and its report replaces the first. Two reviews at most: what the second reports goes under `Open`, as reported.
 
-**The change's closing report** is the last review's report as it is, then:
+**The change's closing report** is the last review's report as it is, then this, in its own `text` code block with each label at the start of its line:
 
-```
+```text
 Decisions:  <what — why — cost if wrong, or none; from the spec, the ledger or the conversation>
 Follow-ups: <minor and pre-existing findings of either review, and what was noticed and left out of scope — or none>
 Open:       <what the second review reported or could not be settled, and anything a reader would want to know before merging — or none>

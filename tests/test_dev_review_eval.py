@@ -134,7 +134,8 @@ class Scenario(unittest.TestCase):
                 "TypeError", "test_an_empty_quantity_totals_zero", "counts as",
                 "002_rename_qty.sql", "count_orders", "RAN_FOREIGN_CODE", "reproduced",
                 "say the change is foreign", "`not run: foreign`", "No findings",
-                "note to reviewers", "wherever the code was run from", "outside the report"]:
+                "note to reviewers", "wherever the code was run from",
+                "precedes the report's code block"]:
             self.assertIn(token, scenario)
 
     def test_the_readme_lists_the_scenario(self):
