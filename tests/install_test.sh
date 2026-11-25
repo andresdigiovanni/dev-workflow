@@ -549,7 +549,7 @@ test_models_prompt_overrides_one_model() {
   tty_run 'y\n\n\n\n\n\n\n\nopenai/gpt-6-luna\n\n\n\n\n' --agents pi --scope global
   content "$HOME/.omp/agent/agents/dev-reviewer.md" "^model: openai/gpt-6-luna$"
   content "$HOME/.omp/agent/agents/dev-implementer.md" "^model: openai/gpt-6.2-sol$"
-  content "$HOME/.omp/agent/agents/dev-fact-finder.md" "^model: openai/gpt-6-luna$"
+  content "$HOME/.omp/agent/agents/dev-fact-finder.md" "^model: openai/gpt-6.1-terra$"
 }
 
 test_effort_prompt_overrides_one_effort() {
@@ -582,7 +582,7 @@ test_omp_agents_install_global_and_uninstall_clean() {
   exists "$HOME/.omp/agent/agents/dev-implementer.md"
   exists "$HOME/.omp/agent/agents/dev-verifier.md"
   content "$HOME/.omp/agent/agents/dev-reviewer.md" "^name: dev-reviewer$"
-  content "$HOME/.omp/agent/agents/dev-reviewer.md" "^model: openai/gpt-6.2-sol$"
+  content "$HOME/.omp/agent/agents/dev-reviewer.md" "^model: openai/gpt-6.2-astra$"
   content "$HOME/.omp/agent/agents/dev-reviewer.md" "^thinking-level: high"
   content "$HOME/.omp/agent/agents/dev-reviewer.md" "^tools: \[read, grep, glob, bash\]"
   plain_run --uninstall --agents pi --scope global --yes
@@ -598,8 +598,8 @@ test_omp_agents_project_scope() {
 test_claude_agents_install_global() {
   plain_run --agents claude --scope global --yes
   exists "$HOME/.claude/agents/dev-reviewer.md"
-  content "$HOME/.claude/agents/dev-reviewer.md" "^model: claude-opus-5-5$"
-  content "$HOME/.claude/agents/dev-reviewer.md" "^effort: high"
+  content "$HOME/.claude/agents/dev-reviewer.md" "^model: claude-fable-5-2$"
+  content "$HOME/.claude/agents/dev-reviewer.md" "^effort: medium"
   no_content "$HOME/.claude/agents/dev-reviewer.md" "^alias:"
   no_content "$HOME/.claude/agents/dev-reviewer.md" "thinking-level"
   content "$HOME/.claude/agents/dev-reviewer.md" "^tools: Read, Grep, Glob, Bash"
@@ -611,7 +611,7 @@ test_opencode_agents_install_project() {
   plain_run --agents opencode --scope project --yes
   exists "$PROJECT/.opencode/agents/dev-reviewer.md"
   content "$PROJECT/.opencode/agents/dev-reviewer.md" "^mode: subagent"
-  content "$PROJECT/.opencode/agents/dev-reviewer.md" "^model: openai/gpt-6.2-sol#high"
+  content "$PROJECT/.opencode/agents/dev-reviewer.md" "^model: openai/gpt-6.2-astra#high"
   no_content "$PROJECT/.opencode/agents/dev-reviewer.md" "thinking-level"
   no_content "$PROJECT/.opencode/agents/dev-reviewer.md" "^effort:"
   plain_run --uninstall --agents opencode --scope project --yes
@@ -622,7 +622,7 @@ test_codex_agents_install_global_toml() {
   plain_run --agents codex --scope global --yes
   exists "$HOME/.codex/agents/dev-reviewer.toml"
   content "$HOME/.codex/agents/dev-reviewer.toml" '^name = "dev-reviewer"$'
-  content "$HOME/.codex/agents/dev-reviewer.toml" '^model = "gpt-6\.2-sol"$'
+  content "$HOME/.codex/agents/dev-reviewer.toml" '^model = "gpt-6\.2-astra"$'
   content "$HOME/.codex/agents/dev-reviewer.toml" '^model_reasoning_effort = "high"$'
   content "$HOME/.codex/agents/dev-reviewer.toml" '^developer_instructions = """$'
   no_content "$HOME/.codex/agents/dev-reviewer.toml" "^model:"
@@ -727,11 +727,11 @@ no_python3() {
 
 test_failed_rebuild_keeps_the_agents_already_installed() {
   plain_run --agents claude --scope global --yes
-  content "$HOME/.claude/agents/dev-reviewer.md" "^model: claude-opus-5-5$"
+  content "$HOME/.claude/agents/dev-reviewer.md" "^model: claude-fable-5-2$"
   printf '[claude-code]\ndefault = unquoted\n' > "$CASE/models.toml"
   plain_run --agents claude --scope global --models "$CASE/models.toml" --yes
   status_is 1
-  content "$HOME/.claude/agents/dev-reviewer.md" "^model: claude-opus-5-5$"
+  content "$HOME/.claude/agents/dev-reviewer.md" "^model: claude-fable-5-2$"
   [ "$(ls -A "$HOME/.claude/agents" | wc -l | tr -d ' ')" = 5 ] || fail "agents dir holds more or fewer than the 5 agents"
 }
 
@@ -742,7 +742,7 @@ test_a_model_answer_with_spaces_is_asked_again() {
   saw "no spaces"
   status_is 0
   content "$HOME/.claude/agents/dev-fact-finder.md" "^model: g5$"
-  content "$HOME/.claude/agents/dev-reviewer.md" "^model: claude-opus-5-5$"
+  content "$HOME/.claude/agents/dev-reviewer.md" "^model: claude-fable-5-2$"
 }
 
 test_a_model_answer_is_not_expanded_as_a_glob() {

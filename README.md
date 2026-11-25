@@ -57,9 +57,9 @@ The files under `agents/` are canonical source, one per role, and are never inst
 
 | Canonical | omp | opencode | Claude Code | Codex CLI |
 | --- | --- | --- | --- | --- |
-| `model: <model>` | `model: openai/gpt-6.2-sol` (models.toml) | `model: openai/gpt-6.2-sol` (models.toml) | `model: claude-opus-5-5` (models.toml) | `model = "gpt-6.2-sol"` (models.toml) |
-| `effort: <effort>` | `thinking-level: high` (models.toml) | — (joins the model) | `effort: high` (models.toml) | `model_reasoning_effort = "high"` (models.toml) |
-| — (implicit) | — | `model: openai/gpt-6.2-sol#high` | — | — |
+| `model: <model>` | `model: openai/gpt-6.2-astra` (models.toml) | `model: openai/gpt-6.2-astra` (models.toml) | `model: claude-fable-5-2` (models.toml) | `model = "gpt-6.2-astra"` (models.toml) |
+| `effort: <effort>` | `thinking-level: high` (models.toml) | — (joins the model) | `effort: medium` (models.toml) | `model_reasoning_effort = "high"` (models.toml) |
+| — (implicit) | — | `model: openai/gpt-6.2-astra#high` | — | — |
 | `mode: subagent` | — | `mode: subagent` | — | — |
 | `tools: [read, grep]` | `tools: [read, grep]` | — (reads no tools field) | `tools: Read, Grep` | — (inherits the parent's) |
 | the body | system prompt | system prompt | system prompt | `developer_instructions = """…"""` |

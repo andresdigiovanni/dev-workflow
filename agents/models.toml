@@ -1,63 +1,72 @@
 # Default models per harness and dispatch role, read by the installer.
-# OpenAI: gpt-6.2-sol for coding/agent work, gpt-6-luna for high-volume
-# focused tasks. Claude Code: pinned model IDs, so the version is the same
-# on every provider (aliases resolve to older models on Bedrock, Vertex
-# and Microsoft Foundry). Where a harness accepts several providers (omp,
-# opencode), the verifier runs on a different family than the reviewer.
+# Picked from Artificial Analysis per-effort data (Intelligence Index, cost
+# and time per task, Terminal-Bench 4.1, FrontierCode, Omniscience
+# hallucination rate); re-check it when a model is released.
+# - dev-fact-finder: cheap and calibrated. gpt-6.1-terra over gpt-6-luna,
+#   which scores near zero on agentic benchmarks; claude-haiku-5-5 on Claude Code.
+# - dev-builder-check, dev-implementer: gpt-6.2-sol on OpenAI; claude-opus-5-5
+#   on Claude Code, where it at medium outscores claude-sonnet-5-5 at high
+#   for about 1.5x the cost per task.
+# - dev-reviewer: the strongest model that still fits a per-change review.
+# - dev-verifier: a well-calibrated model that abstains instead of guessing.
+# Claude Code: pinned model IDs, so the version is the same on every provider
+# (aliases resolve to older models on Bedrock, Vertex and Microsoft Foundry).
+# Where a harness accepts several providers (omp, opencode), the verifier runs
+# on a different family than the reviewer.
 # [<harness>.effort] sets each role's reasoning effort, in the harness's own
 # vocabulary; a role with no entry gets no effort line.
 
 [omp]
 default = "openai/gpt-6.2-sol"
-dev-fact-finder = "openai/gpt-6-luna"
+dev-fact-finder = "openai/gpt-6.1-terra"
 dev-builder-check = "openai/gpt-6.2-sol"
 dev-implementer = "openai/gpt-6.2-sol"
-dev-reviewer = "openai/gpt-6.2-sol"
-dev-verifier = "anthropic/claude-opus-5-5"
+dev-reviewer = "openai/gpt-6.2-astra"
+dev-verifier = "google/gemini-4-neon"
 
 [omp.effort]
 dev-fact-finder = "low"
 dev-builder-check = "high"
 dev-implementer = "high"
 dev-reviewer = "high"
-dev-verifier = "high"
+dev-verifier = "medium"
 
 [opencode]
 default = "openai/gpt-6.2-sol"
-dev-fact-finder = "openai/gpt-6-luna"
+dev-fact-finder = "openai/gpt-6.1-terra"
 dev-builder-check = "openai/gpt-6.2-sol"
 dev-implementer = "openai/gpt-6.2-sol"
-dev-reviewer = "openai/gpt-6.2-sol"
-dev-verifier = "anthropic/claude-opus-5-5"
+dev-reviewer = "openai/gpt-6.2-astra"
+dev-verifier = "google/gemini-4-neon"
 
 [opencode.effort]
 dev-fact-finder = "low"
 dev-builder-check = "high"
 dev-implementer = "high"
 dev-reviewer = "high"
-dev-verifier = "high"
+dev-verifier = "medium"
 
 [claude-code]
 default = "claude-sonnet-5-5"
 dev-fact-finder = "claude-haiku-5-5"
-dev-builder-check = "claude-sonnet-5-5"
-dev-implementer = "claude-sonnet-5-5"
-dev-reviewer = "claude-opus-5-5"
+dev-builder-check = "claude-opus-5-5"
+dev-implementer = "claude-opus-5-5"
+dev-reviewer = "claude-fable-5-2"
 dev-verifier = "claude-opus-5-5"
 
 [claude-code.effort]
-dev-fact-finder = "low"
-dev-builder-check = "high"
-dev-implementer = "high"
-dev-reviewer = "high"
+dev-fact-finder = "medium"
+dev-builder-check = "medium"
+dev-implementer = "medium"
+dev-reviewer = "medium"
 dev-verifier = "high"
 
 [codex]
 default = "gpt-6.2-sol"
-dev-fact-finder = "gpt-6-luna"
+dev-fact-finder = "gpt-6.1-terra"
 dev-builder-check = "gpt-6.2-sol"
 dev-implementer = "gpt-6.2-sol"
-dev-reviewer = "gpt-6.2-sol"
+dev-reviewer = "gpt-6.2-astra"
 dev-verifier = "gpt-6.2-sol"
 
 [codex.effort]

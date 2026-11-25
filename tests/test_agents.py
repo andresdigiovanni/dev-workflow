@@ -258,6 +258,15 @@ class ModelsFile(unittest.TestCase):
         self.assertIn("thinking-level: max\n", out.stdout)
 
 
+class ShippedModels(unittest.TestCase):
+    def test_verifier_runs_on_a_different_family_than_the_reviewer_where_several_providers_exist(self):
+        table = parse_models(os.path.join(AGENTS, "models.toml"))
+        for harness in ("omp", "opencode"):
+            reviewer = table[(harness, "dev-reviewer")].split("/")[0]
+            verifier = table[(harness, "dev-verifier")].split("/")[0]
+            self.assertNotEqual(reviewer, verifier, harness)
+
+
 class LinterAgentRules(unittest.TestCase):
     """The linter's agent rules, exercised on a doctored copy of the repo."""
 
