@@ -184,6 +184,9 @@ Lens: design. Look for:
   library already does, a dependency for a few lines, near-copies that must change together.
 - Structure: feature logic in a shared module, a conditional bolted onto an unrelated flow, a
   refactor that moves complexity without removing any. Name the move that fixes each.
+- Text that is false or unproven: a comment, docstring, README, help text or commit message that
+  the change makes untrue, or that states a number or a behavior the diff does not demonstrate
+  ("measured", "always", "never", "only").
 
 Every finding names its cost: the caller that will diverge, the rule that will break, what a
 reader must hold. No cost, no finding.
@@ -211,7 +214,7 @@ already do. The trigger is the request an attacker sends.
 
 Second, what is a finding on its own, whoever controls anything, so never drop it for lack of an
 attacker-controlled value:
-- A secret or personal data in code, a log, an error or a fixture.
+- A secret or personal data in code, a log, an error, a fixture or a command's arguments.
 - A secret compared in non-constant time, a homemade primitive, a token from a non-cryptographic
   source.
 - A file or resource wider open than its users need.
@@ -238,4 +241,6 @@ you assumed.
 - Seeing it fail: a new failure path that leaves nothing an operator would see.
 - Dependencies: a bump whose changelog breaks a call site in the repo; a manifest and a lockfile
   that disagree.
+- Destructive operations: a delete, drop or force whose target is read from the environment or a
+  file and guarded by a list of what is refused, instead of being built from known inputs.
 ```

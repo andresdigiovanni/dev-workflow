@@ -15,6 +15,7 @@ On an own change only; on a foreign one each line of the report reads `not run: 
 - the project's **full** test suite, not the files the change touched;
 - the type checker, if the repo uses one;
 - the linter and the formatter the repo uses, the formatter in check mode. Lines it would change that the diff did not touch are pre-existing;
+- the repo's hook runner (pre-commit, lefthook, husky and the like) over the files the change touches, when the repo configures one: a hook the repo installs at commit time may not have run on this tree. What a hook rewrites in the tree is the tool's, as a formatter's output is;
 - the build, if there is one;
 - the changed behavior once through its real entry point (the command, the request, the page), when the tests reach it only through substitutes and it runs locally in a minute. Otherwise the line reads `n/a`.
 

@@ -43,7 +43,7 @@ Then write the smallest code that turns it green — not the general version, no
 
 **The name states the guarantee**, not the function under test: `retries three times before giving up` over `test_retry`. When it fails at 3am, the name is the whole message.
 
-**Exercise real code.** Substitute a dependency only when the real one is impractical — the network, the clock, a paid service, something irreducibly slow. Each substitution is where test and reality can silently diverge. A test that asserts only that a substitute was called verifies nothing.
+**Exercise real code.** Substitute a dependency only when the real one is impractical — the network, the clock, a paid service, something irreducibly slow. Each substitution is where test and reality can silently diverge. A test that asserts only that a substitute was called verifies nothing. A name a library marks private, with a leading underscore, is not a seam: needing one means the library lacks a public extension point, so ask its owner for it; reaching in breaks on the next release.
 
 **Deterministic.** No real clock, unseeded randomness, live network or dependence on test order. A test that fails one run in twenty teaches everyone to rerun it instead of reading it.
 
@@ -86,7 +86,7 @@ write the test  →  run it, PASS  →  revert the fix  →  run it, it MUST FAI
                                  →  restore the fix  →  run it, PASS
 ```
 
-Without the revert you have a test that passes, not a regression test. The same applies to any guard or assertion added to a green suite: make it fail on purpose once, or you don't know it is connected to anything.
+Without the revert you have a test that passes, not a regression test. The same applies to any guard or assertion added to a green suite, and to a change in a CI step, a hook or a gate: run it for real once on an input it must fail and once on one it must pass, keep the output, and note its run time against any limit it has, or you don't know it is connected to anything.
 
 ## 6. Green means the whole suite
 

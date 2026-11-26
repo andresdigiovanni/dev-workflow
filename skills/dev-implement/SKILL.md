@@ -49,7 +49,7 @@ Then sort every decision the request didn't settle, per router rule 3. A caller-
 
 Most direct-mode changes are a single task (router, *Terms*). Each task goes test first, per `dev-testing`.
 
-**Forecast the size before the first test.** Past 400 changed lines, tests included, the lane is *Planned*: switch to it, starting at `dev-explore`.
+**Forecast the size before the first test.** Past 400 changed lines, tests included, the lane is *Planned*: switch to it, starting at `dev-explore`. A change that serves more than one concern — a move or rename beside a behavior change, two unrelated fixes — is split into separate changes, each with its own tests, whatever its size.
 
 **Changing behavior that existing tests pin?** Edit those tests to the new behavior first and watch them fail; the request is the requirement `dev-review` traces them to. A new test beside an old one that still asserts the old behavior leaves the suite contradicting itself.
 

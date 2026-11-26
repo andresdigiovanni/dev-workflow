@@ -54,7 +54,7 @@ Write `intent.md` and `claims.md` even when empty: an empty file tells the revie
 **Risk**: what the diff changes the behavior of, not names that merely appear:
 
 - **Security**: authentication or authorization; outside input reaching a query, a shell, a path, a template, a deserializer or an outgoing request; secrets; cryptography; permissions.
-- **Operability**: a schema or migration; an API, event, message or file format; a config key, environment variable or flag; a remote call, queue, scheduled job or retry; a dependency added or bumped; deploy or pipeline files.
+- **Operability**: a schema or migration; an API, event, message or file format; a config key, environment variable or flag; a remote call, queue, scheduled job or retry; destructive operations (delete, drop, force); a dependency added or bumped; deploy or pipeline files.
 
 **Depth**:
 
@@ -66,7 +66,7 @@ Write `intent.md` and `claims.md` even when empty: an empty file tells the revie
 - Past 1,000 changed lines, unless whoever asked named the lenses, say so, group the files by risk, review the highest-risk group at Standard and note the others for `Not checked`: spread over everything, a review reads nothing closely.
 - Whoever asked overrides the triage: "quick" is Small; "thorough" is Standard with both risk lenses, whatever the risk check found; a depth or a list of lenses they name is what runs.
 
-Before any reviewer is dispatched, print this line itself, in this shape, filled in, as a line of its own, not a sentence of your own: the user corrects the depth from it.
+Before any reviewer is dispatched, print this line itself, filled in, as a line of its own, not a sentence of your own: the user corrects the depth from it.
 
 ```text
 Depth: <Small | Standard>[, self-run] — <n> changed lines; lenses: <list>; <own | foreign: nothing will be run>
